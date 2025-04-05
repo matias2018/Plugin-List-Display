@@ -4,7 +4,7 @@ namespace PluginListDisplay;
  * Plugin Name: Plugin List Display
  * Plugin URI: https://github.com/matias2018/Plugin-List-Display
  * Description: This is a plugin to display a list of active and inactive plugins.
- * Version: 1.3.2
+ * Version: 1.3.3
  * Requires at least: 5.2
  * Requires PHP:      7.2
  * Author: Pedro Matias
@@ -75,6 +75,7 @@ function plugin_list_shortcode() {
     $output .= '<h2>Summary:</h2>';
     $output .= '<ul>';
     $output .= '<li>Total Plugins: ' . $summary['total_plugins'] . '</li>';
+    $output .= '<li>Total Plugins: ' . $summary['total_plugins'] . '</li>';
     $output .= '<li>Total Active Plugins: ' . $summary['total_active'] . '</li>';
     $output .= '<li>Total Inactive Plugins: ' . $summary['total_inactive'] . '</li>';
     $output .= '</ul>';
@@ -88,6 +89,7 @@ function plugin_list_shortcode() {
     $download_link = '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
     $download_link .= '<input type="hidden" name="action" value="download_plugin_list_json">';
     $download_link .= '<input type="hidden" name="plugin_list_data" value="' . esc_attr(base64_encode($json_data)) . '">';
+    $download_link .= wp_nonce_field('download_plugin_list', 'plugin_list_nonce', true, false);
     $download_link .= '<input type="submit" value="Download JSON">';
     $download_link .= '</form>';
 
@@ -100,12 +102,16 @@ function plugin_list_shortcode() {
  * Handles the download of the plugin list JSON file.
  */
 function download_plugin_list_json() {
+    if (!isset($_POST['plugin_list_nonce']) || !wp_verify_nonce($_POST['plugin_list_nonce'], 'download_plugin_list')) {
+        wp_die(__('Invalid request.', 'plugin-list-display'));
+    }
+
     if (isset($_POST['plugin_list_data'])) {
         $json_data = base64_decode(sanitize_text_field($_POST['plugin_list_data']));
         $filename = 'plugin_list.json';
 
         header('Content-Type: application/json');
-        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Content-Disposition: attachment; filename="' . esc_attr($filename) . '"');
         echo $json_data;
         exit;
     }
