@@ -8,13 +8,13 @@ Stable tag: 1.3.4
 License: MIT GPL-2.0+
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
-🚀 Plugin List Display (PLD) gives you a quick, read-only overview of all plugins installed on your WordPress site — including their status — and lets you export that information as a JSON report.
+🚀 Modules Insight (MI) gives you a quick, read-only overview of all plugins installed on your WordPress site — including their status — and lets you export that information as a JSON report.
 
 == Description ==
 
-**Plugin List Display (PLD)** is a simple yet powerful WordPress plugin that allows you to list all installed plugins on your site, showing which ones are **active** and which are **inactive**. It’s ideal for developers, site managers, and agencies who need a quick overview of plugin status — especially across multiple sites.
+**Modules Insight (MI)** is a simple yet powerful WordPress plugin that allows you to list all installed plugins on your site, showing which ones are **active** and which are **inactive**. It’s ideal for developers, site managers, and agencies who need a quick overview of plugin status — especially across multiple sites.
 
-PLD is completely read-only and does **not** make any changes to your site. It simply displays useful information and provides an export feature for reporting purposes.
+MI is completely read-only and does **not** make any changes to your site. It simply displays useful information and provides an export feature for reporting purposes.
 
 === ✨ Key Features ===
 
@@ -35,22 +35,22 @@ PLD is completely read-only and does **not** make any changes to your site. It s
 
 1. Upload the plugin folder to the `/wp-content/plugins/` directory, or install the plugin through the WordPress plugin screen directly.
 2. Activate the plugin through the ‘Plugins’ menu in WordPress.
-3. Navigate to **Tools > Plugin List Display** to view and export your plugin list.
+3. Navigate to **Tools > Modules Insight** to view and export your plugin list.
 
 == Frequently Asked Questions ==
 
 = Does this plugin make any changes to my site? =
-No. PLD is read-only. It does not activate, deactivate, install, or delete any plugins.
+No. MI is read-only. It does not activate, deactivate, install, or delete any plugins.
 
 = What format is the export file? =
 The plugin exports data as a `.json` file for easy integration into reports or other tools.
 
 = Can I use this on a live/production site? =
-Yes! PLD is completely safe to use on live sites. It performs no write operations.
+Yes! MI is completely safe to use on live sites. It performs no write operations.
 
 == Screenshots ==
 
-1. Example of the plugin list display interface
+1. Example of the Modules Insight interface
 2. JSON export option
 
 == Changelog ==

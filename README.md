@@ -1,10 +1,10 @@
-# 🚀 Plugin List Display (PLD)
+# 🚀 Modules Insight (previous Modules Insight (MI))
 
 ## 🔍 Overview
 
-**Plugin List Display (PLD)** is a lightweight and non-intrusive WordPress plugin that gives you a clear, organized overview of all plugins installed on your website.
+**Modules Insight (MI)** is a lightweight and non-intrusive WordPress plugin that gives you a clear, organized overview of all plugins installed on your website.
 
-Whether you're a developer, site administrator, or agency managing multiple websites, PLD helps you quickly understand the plugin environment — all without modifying your site in any way.
+Whether you're a developer, site administrator, or agency managing multiple websites, MI helps you quickly understand the plugin environment — all without modifying your site in any way.
 
 ---
 
@@ -24,7 +24,7 @@ Whether you're a developer, site administrator, or agency managing multiple webs
   - 🔄 Deployment pipelines
 
 - 🛡 **Read-Only & Safe**  
-  PLD is 100% non-invasive. It makes **no changes** to your site — safe for production environments.
+  MI is 100% non-invasive. It makes **no changes** to your site — safe for production environments.
 
 - ⏱ **Time-Saving for Developers & Admins**  
   Ideal for those managing multiple WordPress installations who need quick visibility and reporting on plugin setups.
@@ -51,7 +51,7 @@ Whether you're a developer, site administrator, or agency managing multiple webs
 
 1. Download or clone this repository.
 2. Upload the plugin folder to your WordPress site's `/wp-content/plugins/` directory.
-3. Activate **Plugin List Display** via the Plugins menu in WordPress.
+3. Activate **Modules Insight** via the Plugins menu in WordPress.
 4. Navigate to the plugin's page in the admin panel to view your plugin list and download the report.
 
 ---
