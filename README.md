@@ -1,4 +1,4 @@
-# 🚀 Modules Insight (previous Modules Insight (MI))
+# 🚀 Modules Insight (MI)
 
 ## 🔍 Overview
 
