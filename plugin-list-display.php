@@ -4,7 +4,7 @@ namespace PluginListDisplay;
  * Plugin Name: Plugin List Display
  * Plugin URI: https://github.com/matias2018/Plugin-List-Display
  * Description: This is a plugin to display a list of active and inactive plugins.
- * Version: 1.3.3
+ * Version: 2.0.0
  * Requires at least: 5.2
  * Requires PHP:      7.2
  * Author: Pedro Matias
