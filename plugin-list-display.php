@@ -1,10 +1,10 @@
 <?php
 namespace PluginListDisplay;
 /**
- * Plugin Name: Plugin List Display
+ * Plugin Name: Modules Insight
  * Plugin URI: https://github.com/matias2018/Plugin-List-Display
  * Description: This is a plugin to display a list of active and inactive plugins.
- * Version: 2.0.0
+ * Version: 2.0.2
  * Requires at least: 5.2
  * Requires PHP:      7.2
  * Author: Pedro Matias
@@ -16,8 +16,8 @@ namespace PluginListDisplay;
  */
 
 /* !!! comment in production !!! */
-// error_reporting(E_ALL);
-// ini_set('display_errors', 1);
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 
 // If this file is called directly, abort.
 if (!defined('ABSPATH')) {
@@ -55,14 +55,14 @@ function plugin_list_shortcode() {
     $output = '<h2>Active Plugins:</h2>';
     $output .= '<ul>';
     foreach ($active_list as $plugin) {
-        $output .= '<li>' . sanitize_text_field($plugin['name']) . '</li>';
+        $output .= '<li>' . esc_html($plugin['name']) . '</li>';
     }
     $output .= '</ul>';
 
     $output .= '<h2>Inactive Plugins:</h2>';
     $output .= '<ul>';
     foreach ($inactive_list as $plugin) {
-        $output .= '<li>' . sanitize_text_field($plugin['name']) . '</li>';
+        $output .= '<li>' . esc_html($plugin['name']) . '</li>';
     }
     $output .= '</ul>';
 
@@ -74,10 +74,9 @@ function plugin_list_shortcode() {
 
     $output .= '<h2>Summary:</h2>';
     $output .= '<ul>';
-    $output .= '<li>Total Plugins: ' . $summary['total_plugins'] . '</li>';
-    $output .= '<li>Total Plugins: ' . $summary['total_plugins'] . '</li>';
-    $output .= '<li>Total Active Plugins: ' . $summary['total_active'] . '</li>';
-    $output .= '<li>Total Inactive Plugins: ' . $summary['total_inactive'] . '</li>';
+    $output .= '<li>Total Plugins: ' . esc_html($summary['total_plugins']) . '</li>';
+    $output .= '<li>Total Active Plugins: ' . esc_html($summary['total_active']) . '</li>';
+    $output .= '<li>Total Inactive Plugins: ' . esc_html($summary['total_inactive']) . '</li>';
     $output .= '</ul>';
 
     $json_data = json_encode(array(
@@ -90,7 +89,7 @@ function plugin_list_shortcode() {
     $download_link .= '<input type="hidden" name="action" value="download_plugin_list_json">';
     $download_link .= '<input type="hidden" name="plugin_list_data" value="' . esc_attr(base64_encode($json_data)) . '">';
     $download_link .= wp_nonce_field('download_plugin_list', 'plugin_list_nonce', true, false);
-    $download_link .= '<input type="submit" value="Download JSON">';
+    $download_link .= '<input type="submit" value="' . esc_attr__('Download JSON', 'plugin-list-display') . '">';
     $download_link .= '</form>';
 
     $output .= $download_link;
@@ -140,5 +139,18 @@ add_shortcode('plugin_list', __NAMESPACE__ . '\plugin_list_shortcode');
 add_action('admin_post_download_plugin_list_json', __NAMESPACE__ . '\download_plugin_list_json');
 add_action('admin_post_nopriv_download_plugin_list_json', __NAMESPACE__ . '\download_plugin_list_json');
 add_action('wp_dashboard_setup', __NAMESPACE__ . '\add_plugin_list_dashboard_widget');
+
+// Remove the direct call to plugin_list_shortcode().
+add_action('init', function () {
+    if (defined('DOING_AJAX') && DOING_AJAX) {
+        return; // Avoid output during AJAX requests.
+    }
+
+    // Optionally, you can output the shortcode for testing purposes.
+    // echo do_shortcode('[plugin_list]');
+});
+
+/languages/plugin-list-display-en_US.mo
+/languages/plugin-list-display-en_US.po
 
 ?>
