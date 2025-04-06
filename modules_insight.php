@@ -4,7 +4,7 @@ namespace modules_insight;
  * Plugin Name: Modules Insight
  * Plugin URI: https://github.com/matias2018/modules_insight
  * Description: Displays a list of installed plugins (active and inactive) via shortcode [plugin_list] and a dashboard widget. Allows downloading the list as JSON.
- * Version: 2.1.0
+ * Version: 2.2.0
  * Requires at least: 5.2
  * Requires PHP:      7.2
  * Author: Pedro Matias
@@ -105,6 +105,7 @@ function get_plugin_insight_data() {
  * @since 2.0.0
  * @since 2.1.0 Refactored HTML generation, added escaping, uses helper function.
  * @since 2.1.1 Added details/summary for description, added translator comments.
+ * @since 2.2.0 removed details/summary for description
  * @return string HTML output for the plugin list.
  */
 function plugin_list_shortcode() {
@@ -133,12 +134,6 @@ function plugin_list_shortcode() {
                         <?php if ( $plugin['network'] ) : ?>
                             <strong>[<?php esc_html_e( 'Network Active', 'modules_insight' ); ?>]</strong>
                         <?php endif; ?>
-                        <?php if ( ! empty( $plugin['description'] ) ) : ?>
-                            <details style="margin-left: 1em; margin-top: 0.5em;">
-                                <summary style="cursor: pointer; display: inline-block;"><?php esc_html_e( 'Description', 'modules_insight' ); ?></summary>
-                                <p style="font-size:smaller; margin-top: 0.5em; padding-left: 1em;"><?php echo esc_html( $plugin['description'] ); ?></p>
-                            </details>
-                        <?php endif; ?>
                     </li>
                 <?php endforeach; ?>
             </ul>
@@ -152,12 +147,6 @@ function plugin_list_shortcode() {
                 <?php foreach ( $inactive_list as $plugin ) : ?>
                     <li>
                         <?php echo esc_html( $plugin['name'] ); ?> (v<?php echo esc_html( $plugin['version'] ); ?>)
-                        <?php if ( ! empty( $plugin['description'] ) ) : ?>
-                            <details style="margin-left: 1em; margin-top: 0.5em;">
-                                <summary style="cursor: pointer; display: inline-block;"><?php esc_html_e( 'Description', 'modules_insight' ); ?></summary>
-                                <p style="font-size:smaller; margin-top: 0.5em; padding-left: 1em;"><?php echo esc_html( $plugin['description'] ); ?></p>
-                            </details>
-                        <?php endif; ?>
                     </li>
                 <?php endforeach; ?>
             </ul>
