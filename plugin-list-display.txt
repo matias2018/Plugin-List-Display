@@ -1,8 +1,8 @@
 <?php
-namespace PluginListDisplay;
+namespace modules_insight;
 /**
  * Plugin Name: Modules Insight
- * Plugin URI: https://github.com/matias2018/Plugin-List-Display
+ * Plugin URI: https://github.com/matias2018/modules_insight
  * Description: This is a plugin to display a list of active and inactive plugins.
  * Version: 2.0.2
  * Requires at least: 5.2
@@ -11,7 +11,7 @@ namespace PluginListDisplay;
  * Author URI: https://pedromatias.dev
  * License: GPL-2.0+
  * License URI: http://www.gnu.org/licenses/gpl-2.0.txt
- * Text Domain:       plugin-list-display
+ * Text Domain:       modules_insight
  * Domain Path:       /languages/
  */
 
@@ -89,7 +89,7 @@ function plugin_list_shortcode() {
     $download_link .= '<input type="hidden" name="action" value="download_plugin_list_json">';
     $download_link .= '<input type="hidden" name="plugin_list_data" value="' . esc_attr(base64_encode($json_data)) . '">';
     $download_link .= wp_nonce_field('download_plugin_list', 'plugin_list_nonce', true, false);
-    $download_link .= '<input type="submit" value="' . esc_attr__('Download JSON', 'plugin-list-display') . '">';
+    $download_link .= '<input type="submit" value="' . esc_attr__('Download JSON', 'modules_insight') . '">';
     $download_link .= '</form>';
 
     $output .= $download_link;
@@ -102,7 +102,7 @@ function plugin_list_shortcode() {
  */
 function download_plugin_list_json() {
     if (!isset($_POST['plugin_list_nonce']) || !wp_verify_nonce($_POST['plugin_list_nonce'], 'download_plugin_list')) {
-        wp_die(__('Invalid request.', 'plugin-list-display'));
+        wp_die(__('Invalid request.', 'modules_insight'));
     }
 
     if (isset($_POST['plugin_list_data'])) {
@@ -149,8 +149,5 @@ add_action('init', function () {
     // Optionally, you can output the shortcode for testing purposes.
     // echo do_shortcode('[plugin_list]');
 });
-
-/languages/plugin-list-display-en_US.mo
-/languages/plugin-list-display-en_US.po
 
 ?>
