@@ -3,7 +3,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: Modules Insight 2.1.2\n"
-"Report-Msgid-Bugs-To: https://github.com/matias2018/modules_insight/issues\n"
+"Report-Msgid-Bugs-To: https://github.com/matias2018/modules-insight/issues\n"
 "POT-Creation-Date: 2023-11-17 10:00+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: Pedro Matias <your-email@example.com>\n"
@@ -14,75 +14,75 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
 "X-Generator: Manually Created / Poedit\n"
-"X-Domain: modules_insight\n"
+"X-Domain: modules-insight\n"
 
-#: modules_insight.php:124
+#: modules-insight.php:124
 msgid "You do not have permission to view this information."
 msgstr ""
 
-#: modules_insight.php:134
+#: modules-insight.php:134
 msgid "Active Plugins"
 msgstr ""
 
-#: modules_insight.php:140
+#: modules-insight.php:140
 msgid "Network Active"
 msgstr ""
 
-#: modules_insight.php:144 modules_insight.php:162
+#: modules-insight.php:144 modules-insight.php:162
 msgid "Description"
 msgstr ""
 
-#: modules_insight.php:150
+#: modules-insight.php:150
 msgid "No active plugins found."
 msgstr ""
 
-#: modules_insight.php:155
+#: modules-insight.php:155
 msgid "Inactive Plugins"
 msgstr ""
 
-#: modules_insight.php:168
+#: modules-insight.php:168
 msgid "No inactive plugins found."
 msgstr ""
 
-#: modules_insight.php:173
+#: modules-insight.php:173
 msgid "Summary"
 msgstr ""
 
 #. translators: %d: Number of plugins.
-#: modules_insight.php:177
+#: modules-insight.php:177
 msgid "Total Plugins: %d"
 msgstr ""
 
 #. translators: %d: Number of active plugins.
-#: modules_insight.php:182
+#: modules-insight.php:182
 msgid "Total Active Plugins: %d"
 msgstr ""
 
 #. translators: %d: Number of inactive plugins.
-#: modules_insight.php:187
+#: modules-insight.php:187
 msgid "Total Inactive Plugins: %d"
 msgstr ""
 
-#: modules_insight.php:199
+#: modules-insight.php:199
 msgid "Download List as JSON"
 msgstr ""
 
-#: modules_insight.php:221 modules_insight.php:225
+#: modules-insight.php:221 modules-insight.php:225
 msgid "Invalid security token."
 msgstr ""
 
-#: modules_insight.php:221
+#: modules-insight.php:221
 msgid "Nonce Error"
 msgstr ""
 
-#: modules_insight.php:225
+#: modules-insight.php:225
 msgid "You do not have sufficient permissions to download this file."
 msgstr ""
 
-#: modules_insight.php:225
+#: modules-insight.php:225
 msgid "Permission Denied"
 msgstr ""
 
-#: modules_insight.php:274
+#: modules-insight.php:274
 msgid "Modules Insight - Plugin List"
 msgstr ""
