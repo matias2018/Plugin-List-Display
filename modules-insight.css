@@ -1,0 +1,7 @@
+@media print {
+    input[type="submit"].button.button-danger.hideOnPrint, 
+    footer,
+    header {
+        display: none !important;
+    }
+}

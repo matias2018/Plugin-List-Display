@@ -4,7 +4,7 @@ namespace modules_insight;
  * Plugin Name: Modules Insight
  * Plugin URI: https://github.com/matias2018/modules_insight
  * Description: Displays a list of installed plugins (active and inactive) via shortcode [plugin_list] and a dashboard widget. Allows downloading the list as JSON.
- * Version: 2.3.0
+ * Version: 2.4.0
  * Requires at least: 5.2
  * Requires PHP:      7.2
  * Author: Pedro Matias
@@ -19,6 +19,19 @@ namespace modules_insight;
 if ( ! defined( 'ABSPATH' ) ) {
     die;
 }
+
+/** 
+ * @since 2.4.0
+ * Added styles to hide the download button when printing.
+ * Also hide header and footer when printing.
+ * This is a temporary solution until we can implement a more robust method.
+*/
+// Enqueue css file
+function modules_insight_enqueue_styles() {
+    // Enqueue the CSS file for the plugin
+    wp_enqueue_style( 'modules-insight-style', plugins_url( 'modules-insight.css', __FILE__ ), array(), '2.3.0' );
+}
+add_action( 'wp_enqueue_scripts', __NAMESPACE__ . '\modules_insight_enqueue_styles' );
 
 /**
  * Helper function to retrieve and structure plugin data.
@@ -110,7 +123,6 @@ function get_plugin_insight_data() {
  */
 function plugin_list_shortcode() {
     // Check if user has capability to view plugins - adjust if needed for frontend use
-    // Note: 'activate_plugins' is typically Administrator only.
     if ( ! current_user_can( 'activate_plugins' ) && ! is_admin() ) {
         return sprintf( '<p>%s</p>', esc_html__( 'You do not have permission to view this information.', 'modules-insight' ) );
     }
@@ -185,7 +197,10 @@ function plugin_list_shortcode() {
             <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin-top: 1em;">
                 <input type="hidden" name="action" value="download_plugin_list_json">
                 <?php wp_nonce_field( 'download_plugin_list', 'plugin_list_nonce' ); ?>
-                <input type="submit" class="button button-primary" value="<?php esc_attr_e( 'Download List as JSON', 'modules-insight' ); ?>">
+                <input type="hidden" name="plugin_list_nonce" value="<?php echo esc_attr( wp_create_nonce( 'download_plugin_list' ) ); ?>">
+                <input type="hidden" name="plugin_list" value="<?php echo esc_attr( wp_json_encode( $data ) ); ?>">
+                <!-- Hide if list is being displayed on a page instead of admin dashboard -->
+                <input type="submit" class="button button-danger hideOnPrint" value="<?php esc_attr_e( 'Download List as JSON', 'modules-insight' ); ?>">
             </form>
         <?php else : ?>
             <?php // Optional: Add a message if the user *cannot* see the button ?>
