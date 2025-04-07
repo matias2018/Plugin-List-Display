@@ -4,7 +4,7 @@ namespace modules_insight;
  * Plugin Name: Modules Insight
  * Plugin URI: https://github.com/matias2018/modules_insight
  * Description: Displays a list of installed plugins (active and inactive) via shortcode [plugin_list] and a dashboard widget. Allows downloading the list as JSON.
- * Version: 2.7.0
+ * Version: 2.7.2
  * Requires at least: 5.2
  * Requires PHP:      7.2
  * Author: Pedro Matias
@@ -135,6 +135,9 @@ function get_plugin_insight_data() {
  * @since 2.4.0 Added styles to hide header and footer when printing.
  * @since 2.5.0 Added if statement to check if display is on a page/post
  * @since 2.5.0 If display is on a page/post then show the description in a details/summary tag
+ * @since 2.6.0 Added JavaScript to open the details/summary tag on @media Print
+ * @since 2.7.0 Added a message if the user cannot see the download button
+ * @since 2.7.2 Added specific styles for Avada theme (custom footer)
  * @return string HTML output for the plugin list.
  */
 
@@ -237,7 +240,7 @@ function plugin_list_shortcode() {
                 <input type="hidden" name="plugin_list_nonce" value="<?php echo esc_attr( wp_create_nonce( 'download_plugin_list' ) ); ?>">
                 <input type="hidden" name="plugin_list" value="<?php echo esc_attr( wp_json_encode( $data ) ); ?>">
                 <!-- Hide if list is being displayed on a page instead of admin dashboard -->
-                <input type="submit" class="button button-danger hideOnPrint" value="<?php esc_attr_e( 'Download List as JSON', 'modules-insight' ); ?>">
+                <input type="submit" class="button button-primary hideOnPrint" value="<?php esc_attr_e( 'Download List as JSON', 'modules-insight' ); ?>">
             </form>
         <?php else : ?>
             <?php // Optional: Add a message if the user *cannot* see the button ?>
