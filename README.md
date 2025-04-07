@@ -22,6 +22,8 @@ Whether you're a developer, site administrator, or agency managing multiple webs
   - 🛠 Technical audits  
   - 📊 External reports  
   - 🔄 Deployment pipelines
+  - `[plugin_list]` Shortcode support for display anywhere
+    -  Upcoming: Plugin description on generated page
 
 - 🛡 **Read-Only & Safe**  
   MI is 100% non-invasive. It makes **no changes** to your site — safe for production environments.

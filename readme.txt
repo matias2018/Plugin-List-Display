@@ -4,7 +4,7 @@ Tags: plugin management, plugin report, admin tools, plugin status, developer to
 Requires at least: 5.2
 Tested up to: 6.7
 Requires PHP: 7.2
-Stable tag: 2.3.0
+Stable tag: 2.4.0
 License: GPL-2.0-or-later
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
@@ -21,11 +21,12 @@ MI is completely read-only and does **not** make any changes to your site's plug
 === ✨ Key Features ===
 
 - 📋 Lists all installed plugins (active, inactive, network active)
-- ✅ Includes plugin version and description (toggle view)
+- ✅ Includes plugin name and version. 
 - 📊 Displays a summary count of plugins
 - 📁 Allows **Administrators** to export plugin data as a `.json` report
 - 🖥 Adds a convenient Dashboard Widget
 - `[plugin_list]` Shortcode support for display anywhere
+-   - Upcoming: Plugin description on generated page
 - 🛡 100% read-only — safe for production use
 
 === 💡 Use Cases ===
