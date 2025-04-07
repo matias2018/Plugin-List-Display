@@ -2,7 +2,7 @@
 namespace modules_insight;
 /**
  * Plugin Name: Modules Insight
- * Plugin URI: https://github.com/matias2018/modules_insight
+ * Plugin URI: https://github.com/matias2018/Plugin-List-Display
  * Description: This is a plugin to display a list of active and inactive plugins.
  * Version: 2.0.2
  * Requires at least: 5.2
