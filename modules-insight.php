@@ -229,7 +229,6 @@ function plugin_list_shortcode() {
         <?php
         // --- Download Button Section ---
         // IMPORTANT: Only show download button if user has 'activate_plugins' capability (usually Administrators).
-        // If the button is missing, check the user role you are testing with.
         ?>
         <?php if ( current_user_can( 'activate_plugins' ) ) : ?>
             <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin-top: 1em;">
@@ -332,14 +331,13 @@ function plugin_list_dashboard_widget() {
  * @since 2.1.0 Made title translatable.
  */
 function add_plugin_list_dashboard_widget() {
-    // Check if user can see the dashboard widget (optional, but good practice)
     if ( ! current_user_can( 'activate_plugins' ) ) {
         return;
     }
 
     wp_add_dashboard_widget(
-        'modules_insight_plugin_list_widget',          // Widget slug (unique id)
-        __( 'Modules Insight - Plugin List', 'modules-insight' ), // Widget title (translatable)
+        'modules_insight_plugin_list_widget',          
+        __( 'Modules Insight - Plugin List', 'modules-insight' ),
         __NAMESPACE__ . '\plugin_list_dashboard_widget' // Display function
     );
 }
