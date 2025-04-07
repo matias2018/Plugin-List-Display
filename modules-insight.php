@@ -119,8 +119,14 @@ function get_plugin_insight_data() {
  * @since 2.1.0 Refactored HTML generation, added escaping, uses helper function.
  * @since 2.1.1 Added details/summary for description, added translator comments.
  * @since 2.2.0 removed details/summary for description
+ * @since 2.3.0 Added network active status
+ * @since 2.4.0 Added styles to hide the download button when printing.
+ * @since 2.4.0 Added styles to hide header and footer when printing.
+ * @since 2.5.0 Added if statement to check if display is on a page/post
+ * @since 2.5.0 If display is on a page/post then show the description in a details/summary tag
  * @return string HTML output for the plugin list.
  */
+
 function plugin_list_shortcode() {
     // Check if user has capability to view plugins - adjust if needed for frontend use
     if ( ! current_user_can( 'activate_plugins' ) && ! is_admin() ) {
@@ -139,16 +145,37 @@ function plugin_list_shortcode() {
 
         <h2><?php esc_html_e( 'Active Plugins', 'modules-insight' ); ?> (<?php echo (int) $summary['total_active']; ?>)</h2>
         <?php if ( ! empty( $active_list ) ) : ?>
-            <ul>
+            <ol>
                 <?php foreach ( $active_list as $plugin ) : ?>
                     <li>
                         <?php echo esc_html( $plugin['name'] ); ?> (v<?php echo esc_html( $plugin['version'] ); ?>)
+
+                        <!-- If page/post display description -->
+                        <?php if ( is_single() || is_page() ) : ?>
+                                <details>
+                                    <summary><?php esc_html_e( 'Description', 'modules-insight' ); ?></summary>
+                                    <p><?php echo wp_kses_post( $plugin['description'] ); ?></p>
+                                </details>
+                            <?php endif; ?>
+                            <!-- Optional: Add links to plugin URI and author URI -->
+                            <?php if ( ! empty( $plugin['plugin_uri'] ) ) : ?>
+                                <a href="<?php echo esc_url( $plugin['plugin_uri'] ); ?>" target="_blank" rel="noopener noreferrer">
+                                    <?php esc_html_e( 'Plugin URI', 'modules-insight' ); ?>
+                                </a>
+                            <?php endif; ?>||
+                            <?php if ( ! empty( $plugin['author_uri'] ) ) : ?>
+                                <a href="<?php echo esc_url( $plugin['author_uri'] ); ?>" target="_blank" rel="noopener noreferrer">
+                                    <?php esc_html_e( 'Author URI', 'modules-insight' ); ?>
+                                </a>
+                            <?php endif; ?>
+                            <!-- Optional: Add network active status -->
                         <?php if ( $plugin['network'] ) : ?>
                             <strong>[<?php esc_html_e( 'Network Active', 'modules-insight' ); ?>]</strong>
                         <?php endif; ?>
                     </li>
+                    <hr>
                 <?php endforeach; ?>
-            </ul>
+            </ol>
         <?php else : ?>
             <p><?php esc_html_e( 'No active plugins found.', 'modules-insight' ); ?></p>
         <?php endif; ?>
