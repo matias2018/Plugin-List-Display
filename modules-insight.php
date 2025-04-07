@@ -34,12 +34,10 @@ function modules_insight_enqueue_styles() {
 add_action( 'wp_enqueue_scripts', __NAMESPACE__ . '\modules_insight_enqueue_styles' );
 
 /**
- * Enqueue the JavaScript file for the plugin.
- * This is used to add interactivity or other dynamic features.
+ * Enqueue the JavaScript file for the plugin. Used for opening the details/summary tag on @media Print. 
  *
  * @since 2.6.0
  */
-// Enqueue js file
 function modules_insight_enqueue_scripts() {
     // Enqueue the JS file for the plugin
     wp_enqueue_script( 'modules-insight-script', plugins_url( 'modules-insight.js', __FILE__ ), array(), '2.3.0', true );
