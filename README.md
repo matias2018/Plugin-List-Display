@@ -6,7 +6,7 @@
 
 Whether you're a developer, site administrator, or agency managing multiple websites, MI helps you quickly understand the plugin environment — all without modifying your site in any way.
 
-### Current stable version: V 2.6.0
+### Current stable version: V 2.7.0
 ---
 
 ## ✨ Features
