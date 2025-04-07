@@ -4,7 +4,7 @@ namespace modules_insight;
  * Plugin Name: Modules Insight
  * Plugin URI: https://github.com/matias2018/modules_insight
  * Description: Displays a list of installed plugins (active and inactive) via shortcode [plugin_list] and a dashboard widget. Allows downloading the list as JSON.
- * Version: 2.4.0
+ * Version: 2.5.0
  * Requires at least: 5.2
  * Requires PHP:      7.2
  * Author: Pedro Matias
