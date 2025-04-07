@@ -61,9 +61,9 @@ Yes! MI is completely safe to use on live sites as it performs no write operatio
 == Screenshots ==
 
 1. The Modules Insight dashboard widget showing active/inactive plugins.
-2. Example of the collapsed description view using `<details>`.
-3. The "Download List as JSON" button available to administrators.
-4. Example structure of the exported JSON file.
+3. The "Download List as JSON" button available to administrators and structure of the exported JSON file.
+2. Example of a page generated using ths shorcode and the collapsed description view using `<details>`.
+4. Example of "print" page using shortcode and automatic expanded description view using `<details>`.
 
 == Changelog ==
 
