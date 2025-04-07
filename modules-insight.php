@@ -138,6 +138,7 @@ function get_plugin_insight_data() {
  * @since 2.6.0 Added JavaScript to open the details/summary tag on @media Print
  * @since 2.7.0 Added a message if the user cannot see the download button
  * @since 2.7.2 Added specific styles for Avada theme (custom footer)
+ * @since 2.8.0 Fixed project GIT url to https://github.com/matias2018/Plugin-List-Display
  * @return string HTML output for the plugin list.
  */
 
