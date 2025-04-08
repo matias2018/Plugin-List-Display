@@ -4,7 +4,7 @@ namespace modules_insight;
  * Plugin Name: Modules Insight
  * Plugin URI: https://github.com/matias2018/Plugin-List-Display
  * Description: Displays a list of installed plugins (active and inactive) via shortcode [plugin_list] and a dashboard widget. Allows downloading the list as JSON.
- * Version: 2.9.0
+ * Version: 2.9.1
  * Requires at least: 5.2
  * Requires PHP:      7.2
  * Author: Pedro Matias
@@ -139,6 +139,8 @@ function get_plugin_insight_data() {
  * @since 2.7.0 Added a message if the user cannot see the download button
  * @since 2.7.2 Added specific styles for Avada theme (custom footer)
  * @since 2.8.0 Fixed project GIT url to https://github.com/matias2018/Plugin-List-Display
+ * @since 2.9.0 Changed the header of report to show the target and date
+ * @since 2.9.0 Added the URL of the site to the report
  * @return string HTML output for the plugin list.
  */
 

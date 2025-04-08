@@ -1,4 +1,4 @@
-/* Version 2.9.0 */
+/* Version 2.9.1 */
 /* Added fusion-tb-footer and fusion-footer classes for avada custom footers*/
 @media print {
     input[type="submit"].button.button-primary.hideOnPrint, 
@@ -8,6 +8,36 @@
     header {
         display: none !important;
     }
+}
+
+input[type="submit"].button.button-primary.hideOnPrint {
+    background-color: #BADA55;
+    padding: 3px 5px;
+    border: 1px solid #A0C23D;
+    color: #000;
+    font-size: 14px;
+    border-radius: 5px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    margin: 5px 0;
+    font-weight: bold;
+    text-align: center;
+    text-transform: uppercase;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.3s ease;
+}
+
+input[type="submit"].button.button-primary.hideOnPrint:hover {
+    background-color: #A0C23D;
+    color: #4448d4;
+}
+input[type="submit"].button.button-primary.hideOnPrint:active {
+    background-color: #8DAA2A;
+}
+input[type="submit"].button.button-primary.hideOnPrint:focus {
+    outline: none;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
 }
 
 span.report-title {

@@ -2,7 +2,7 @@
 # This file is distributed under the GPL-2.0+.
 msgid ""
 msgstr ""
-"Project-Id-Version: Modules Insight 2.9.0\n"
+"Project-Id-Version: Modules Insight 2.9.1\n"
 "Report-Msgid-Bugs-To: https://github.com/matias2018/modules-insight/issues\n"
 "POT-Creation-Date: 2025-04-07 10:00+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
