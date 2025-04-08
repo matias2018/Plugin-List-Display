@@ -1,4 +1,4 @@
-// V.2.8.0
+// V.2.9.0
 window.matchMedia("print").addEventListener("change", evt => {
     if (evt.matches) {
         elms = document.body.querySelectorAll("details:not([open])");

@@ -1,4 +1,4 @@
-/* Version 2.8.0 */
+/* Version 2.9.0 */
 /* Added fusion-tb-footer and fusion-footer classes for avada custom footers*/
 @media print {
     input[type="submit"].button.button-primary.hideOnPrint, 
@@ -8,4 +8,13 @@
     header {
         display: none !important;
     }
+}
+
+span.report-title {
+    font-weight: bold;
+    color: #fff;
+}
+.MI-report-header {
+    background: #BADA55;
+    padding: 5px 10px;
 }

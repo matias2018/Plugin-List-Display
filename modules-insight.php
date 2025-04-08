@@ -4,7 +4,7 @@ namespace modules_insight;
  * Plugin Name: Modules Insight
  * Plugin URI: https://github.com/matias2018/Plugin-List-Display
  * Description: Displays a list of installed plugins (active and inactive) via shortcode [plugin_list] and a dashboard widget. Allows downloading the list as JSON.
- * Version: 2.8.0
+ * Version: 2.9.0
  * Requires at least: 5.2
  * Requires PHP:      7.2
  * Author: Pedro Matias
@@ -157,6 +157,26 @@ function plugin_list_shortcode() {
     ob_start();
     ?>
     <div class="modules-insight-plugin-list">
+        <?php if ( is_single() || is_page() ) : ?>
+            <div class="MI-report-header">
+                <p>
+                    <strong>TARGET: </strong> 
+                    <span class="report-title">
+                        <?php echo esc_html( get_bloginfo( 'name' ) ); ?>
+                    </span>
+                </p>
+                <p>
+                    <strong>DATE: </strong>
+                    <span class="report-date">
+                        <?php echo esc_html( date_i18n( 'Y-m-d H:i:s' ) ); ?> 
+                            || <strong>URL: </strong>
+                    </span>
+                    <span class="report-url">
+                        <?php echo esc_html( get_bloginfo( 'url' ) ); ?>
+                    </span>
+                </p>
+            </div>
+        <?php endif; ?>
 
         <h2><?php esc_html_e( 'Active Plugins', 'modules-insight' ); ?> (<?php echo (int) $summary['total_active']; ?>)</h2>
         <?php if ( ! empty( $active_list ) ) : ?>
