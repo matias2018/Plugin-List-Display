@@ -20,29 +20,17 @@ if ( ! defined( 'ABSPATH' ) ) {
     die;
 }
 
-/** 
- * @since 2.4.0
- * Added styles to hide the download button when printing.
- * Also hide header and footer when printing.
- * This is a temporary solution until we can implement a more robust method.
-*/
-// Enqueue css file
-function modules_insight_enqueue_styles() {
-    // Enqueue the CSS file for the plugin
-    wp_enqueue_style( 'modules-insight-style', plugins_url( 'css/modules-insight.css', __FILE__ ), array(), '2.3.0' );
-}
-add_action( 'wp_enqueue_scripts', __NAMESPACE__ . '\modules_insight_enqueue_styles' );
-
 /**
- * Enqueue the JavaScript file for the plugin. Used for opening the details/summary tag on @media Print. 
+ * Registers (but does not enqueue) the plugin's front-end assets.
+ * Enqueuing happens inside the shortcode so assets only load on pages that use it.
  *
- * @since 2.6.0
+ * @since 2.9.2
  */
-function modules_insight_enqueue_scripts() {
-    // Enqueue the JS file for the plugin
-    wp_enqueue_script( 'modules-insight-script', plugins_url( 'js/modules-insight.js', __FILE__ ), array(), '2.3.0', true );
+function modules_insight_register_assets() {
+    wp_register_style( 'modules-insight-style', plugins_url( 'css/modules-insight.css', __FILE__ ), array(), '2.9.2' );
+    wp_register_script( 'modules-insight-script', plugins_url( 'js/modules-insight.js', __FILE__ ), array(), '2.9.2', true );
 }
-add_action( 'wp_enqueue_scripts', __NAMESPACE__ . '\modules_insight_enqueue_scripts' );
+add_action( 'wp_enqueue_scripts', __NAMESPACE__ . '\modules_insight_register_assets' );
 
 /**
  * Helper function to retrieve and structure plugin data.
@@ -58,7 +46,8 @@ function get_plugin_insight_data() {
 
     $all_plugins    = get_plugins();
     // Get network-activated plugins if on multisite admin. Check site option as fallback.
-    $active_plugins = get_option( 'active_plugins', array() );
+    $active_plugins  = \get_option( 'active_plugins', array() );
+    $network_plugins = array();
     if ( is_multisite() ) {
         $network_plugins = get_site_option( 'active_sitewide_plugins', array() );
         if ( ! empty( $network_plugins ) ) {
@@ -72,16 +61,11 @@ function get_plugin_insight_data() {
     $inactive_list = array();
 
     foreach ( $all_plugins as $plugin_path => $plugin_data ) {
-        $is_active = in_array( $plugin_path, $active_plugins, true );
-        $is_network_active = false;
+        $is_active         = in_array( $plugin_path, $active_plugins, true );
+        $is_network_active = isset( $network_plugins[ $plugin_path ] );
 
-        // Check network activation status if multisite
-        if ( is_multisite() ) {
-            $network_plugins = get_site_option( 'active_sitewide_plugins', array() );
-            if ( isset( $network_plugins[ $plugin_path ] ) ) {
-                $is_network_active = true;
-                 $is_active = true; // Ensure it's listed as active
-            }
+        if ( $is_network_active ) {
+            $is_active = true;
         }
 
         // Basic plugin info - keep raw for JSON, escape during HTML output.
@@ -146,9 +130,12 @@ function get_plugin_insight_data() {
 
 function plugin_list_shortcode() {
     // Check if user has capability to view plugins - adjust if needed for frontend use
-    if ( ! current_user_can( 'activate_plugins' ) && ! is_admin() ) {
+    if ( ! current_user_can( 'activate_plugins' ) ) {
         return sprintf( '<p>%s</p>', esc_html__( 'You do not have permission to view this information.', 'modules-insight' ) );
     }
+
+    wp_enqueue_style( 'modules-insight-style' );
+    wp_enqueue_script( 'modules-insight-script' );
 
     $data          = get_plugin_insight_data();
     $active_list   = $data['active'];
@@ -260,7 +247,6 @@ function plugin_list_shortcode() {
             <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin-top: 1em;">
                 <input type="hidden" name="action" value="download_plugin_list_json">
                 <?php wp_nonce_field( 'download_plugin_list', 'plugin_list_nonce' ); ?>
-                <input type="hidden" name="plugin_list_nonce" value="<?php echo esc_attr( wp_create_nonce( 'download_plugin_list' ) ); ?>">
                 <input type="hidden" name="plugin_list" value="<?php echo esc_attr( wp_json_encode( $data ) ); ?>">
                 <!-- Hide if list is being displayed on a page instead of admin dashboard -->
                 <input type="submit" class="button button-primary hideOnPrint" value="<?php esc_attr_e( 'Download List as JSON', 'modules-insight' ); ?>">

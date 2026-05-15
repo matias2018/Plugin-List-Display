@@ -1,4 +1,4 @@
-/* Version 2.9.1 */
+/* Version 2.9.2 */
 /* Added fusion-tb-footer and fusion-footer classes for avada custom footers*/
 @media print {
     input[type="submit"].button.button-primary.hideOnPrint, 
@@ -36,7 +36,8 @@ input[type="submit"].button.button-primary.hideOnPrint:active {
     background-color: #8DAA2A;
 }
 input[type="submit"].button.button-primary.hideOnPrint:focus {
-    outline: none;
+    outline: 2px solid #4448d4;
+    outline-offset: 2px;
     box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
 }
 

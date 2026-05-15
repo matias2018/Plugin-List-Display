@@ -4,7 +4,7 @@ Tags: plugin management, plugin report, admin tools, plugin status, developer to
 Requires at least: 5.2
 Tested up to: 6.7
 Requires PHP: 7.2
-Stable tag: 2.9.1
+Stable tag: 2.9.2
 License: GPL-2.0-or-later
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
@@ -61,11 +61,54 @@ Yes! MI is completely safe to use on live sites as it performs no write operatio
 == Screenshots ==
 
 1. The Modules Insight dashboard widget showing active/inactive plugins.
+2. Example of a page generated using the shortcode and the collapsed description view using `<details>`.
 3. The "Download List as JSON" button available to administrators and structure of the exported JSON file.
-2. Example of a page generated using ths shorcode and the collapsed description view using `<details>`.
 4. Example of "print" page using shortcode and automatic expanded description view using `<details>`.
 
 == Changelog ==
+
+= 2.9.2 =
+* Fix: Remove duplicate nonce hidden field in the download form (wp_nonce_field() already outputs it).
+* Fix: JS print listener now only closes `<details>` elements that were auto-opened, preserving manually-opened ones.
+* Fix: Declare `elms` and `e` with `const` in the print media listener to avoid implicit globals.
+* Perf: Move `get_site_option('active_sitewide_plugins')` call outside the plugin foreach loop on multisite.
+* Security: Simplify shortcode capability check — remove `is_admin()` context check, rely solely on `activate_plugins`.
+* Perf: Register assets on `wp_enqueue_scripts` and enqueue them inside the shortcode, so they only load on pages using `[plugin_list]`.
+* Perf: Update asset version strings from 2.3.0 to 2.9.2 to ensure browsers pick up current files.
+* Accessibility: Replace `outline: none` on button focus with a visible `2px solid` outline.
+* Dev: Add `.vscode/settings.json` enabling Intelephense's built-in WordPress stubs for accurate static analysis.
+
+= 2.9.1 =
+* Style: Added `fusion-tb-footer` and `fusion-footer` CSS classes to print hide rules for Avada theme compatibility.
+* Version bump for CSS and JS assets.
+
+= 2.9.0 =
+* Feature: Report header now shows site name, date, and URL when shortcode is rendered on a page or post.
+
+= 2.8.0 =
+* Fix: Corrected plugin GitHub URI to https://github.com/matias2018/Plugin-List-Display.
+
+= 2.7.2 =
+* Style: Added specific print-hide rules for Avada theme custom footer elements.
+
+= 2.7.0 =
+* Feature: Added informational message for users without the download capability.
+
+= 2.6.0 =
+* Feature: Enqueue JavaScript to auto-expand `<details>` elements when printing.
+
+= 2.5.0 =
+* Feature: Show plugin description inside `<details>`/`<summary>` when shortcode is rendered on a page or post.
+* Feature: Added `is_single()`/`is_page()` context check to conditionally show the description block.
+
+= 2.4.0 =
+* Feature: Added print styles to hide the download button, header, and footer when printing.
+
+= 2.3.0 =
+* Feature: Added network-active status display for multisite installs.
+
+= 2.2.0 =
+* Refine: Removed `<details>`/`<summary>` wrapper from description in default (non-page) view.
 
 = 2.1.2 =
 * Fix: Use `current_time()` instead of `date()` for JSON filename timestamp to respect WordPress timezone settings (Fixes PHPCS error).
