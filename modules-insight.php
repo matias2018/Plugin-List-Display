@@ -4,7 +4,7 @@ namespace modules_insight;
  * Plugin Name: Modules Insight
  * Plugin URI: https://github.com/matias2018/Plugin-List-Display
  * Description: Displays a list of installed plugins (active and inactive) via shortcode [plugin_list] and a dashboard widget. Allows downloading the list as JSON.
- * Version: 2.9.5
+ * Version: 2.9.6
  * Requires at least: 5.2
  * Requires PHP:      7.2
  * Author: Pedro Matias
@@ -27,8 +27,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 2.9.2
  */
 function modules_insight_register_assets() {
-    wp_register_style( 'modules-insight-style', plugins_url( 'css/modules-insight.css', __FILE__ ), array(), '2.9.5' );
-    wp_register_script( 'modules-insight-script', plugins_url( 'js/modules-insight.js', __FILE__ ), array(), '2.9.5', true );
+    wp_register_style( 'modules-insight-style', plugins_url( 'css/modules-insight.css', __FILE__ ), array(), '2.9.6' );
+    wp_register_script( 'modules-insight-script', plugins_url( 'js/modules-insight.js', __FILE__ ), array(), '2.9.6', true );
 }
 add_action( 'wp_enqueue_scripts', __NAMESPACE__ . '\modules_insight_register_assets' );
 
