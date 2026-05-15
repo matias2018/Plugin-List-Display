@@ -80,3 +80,5 @@ screenshot-*.png
 *.xd
 .*design*
 
+# Local deployment notes
+plugin-export-to-svn-flow.md
