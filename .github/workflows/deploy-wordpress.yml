@@ -10,9 +10,26 @@ jobs:
     name: Deploy plugin to WordPress.org
     runs-on: ubuntu-latest
 
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Check secrets exist
+        run: |
+          if [ -z "${{ secrets.SVN_USERNAME }}" ]; then
+            echo "SVN_USERNAME missing"
+            exit 1
+          fi
+
+          if [ -z "${{ secrets.SVN_PASSWORD }}" ]; then
+            echo "SVN_PASSWORD missing"
+            exit 1
+          fi
+
+          echo "Secrets are present"
 
       - name: Deploy to WordPress.org SVN
         uses: 10up/action-wordpress-plugin-deploy@stable
