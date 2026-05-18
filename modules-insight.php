@@ -3,8 +3,8 @@ namespace modules_insight;
 /**
  * Plugin Name: Modules Insight
  * Plugin URI: https://github.com/matias2018/Plugin-List-Display
- * Description: Displays a list of installed plugins (active and inactive) via shortcode [plugin_list] and a dashboard widget. Allows downloading the list as JSON or CSV.
- * Version: 2.9.8
+ * Description: Displays a list of installed plugins (active and inactive) via shortcode [plugin_list] and a dashboard widget. Includes WordPress version and active theme info. Allows downloading the list as JSON or CSV.
+ * Version: 2.9.9
  * Requires at least: 5.2
  * Requires PHP:      7.2
  * Author: Pedro Matias
@@ -27,8 +27,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 2.9.2
  */
 function modules_insight_register_assets() {
-    wp_register_style( 'modules-insight-style', plugins_url( 'css/modules-insight.css', __FILE__ ), array(), '2.9.8' );
-    wp_register_script( 'modules-insight-script', plugins_url( 'js/modules-insight.js', __FILE__ ), array(), '2.9.8', true );
+    wp_register_style( 'modules-insight-style', plugins_url( 'css/modules-insight.css', __FILE__ ), array(), '2.9.9' );
+    wp_register_script( 'modules-insight-script', plugins_url( 'js/modules-insight.js', __FILE__ ), array(), '2.9.9', true );
 }
 add_action( 'wp_enqueue_scripts', __NAMESPACE__ . '\modules_insight_register_assets' );
 
@@ -98,10 +98,23 @@ function get_plugin_insight_data() {
         'total_inactive' => count( $inactive_list ),
     );
 
+    $theme = wp_get_theme();
+
+    $site_info = array(
+        'wp_version'   => get_bloginfo( 'version' ),
+        'active_theme' => array(
+            'name'      => $theme->get( 'Name' ),
+            'version'   => $theme->get( 'Version' ),
+            'author'    => $theme->get( 'Author' ),
+            'theme_uri' => $theme->get( 'ThemeURI' ),
+        ),
+    );
+
     return array(
-        'active'   => $active_list,
-        'inactive' => $inactive_list,
-        'summary'  => $summary,
+        'site_info' => $site_info,
+        'active'    => $active_list,
+        'inactive'  => $inactive_list,
+        'summary'   => $summary,
     );
 }
 
@@ -141,6 +154,7 @@ function plugin_list_shortcode() {
     $active_list   = $data['active'];
     $inactive_list = $data['inactive'];
     $summary       = $data['summary'];
+    $site_info     = $data['site_info'];
 
     // Use output buffering for cleaner HTML construction
     ob_start();
@@ -166,6 +180,28 @@ function plugin_list_shortcode() {
                 </p>
             </div>
         <?php endif; ?>
+
+        <h2><?php esc_html_e( 'Site Environment', 'modules-insight' ); ?></h2>
+        <ul>
+            <li>
+                <strong><?php esc_html_e( 'WordPress Version:', 'modules-insight' ); ?></strong>
+                <?php echo esc_html( $site_info['wp_version'] ); ?>
+            </li>
+            <li>
+                <strong><?php esc_html_e( 'Active Theme:', 'modules-insight' ); ?></strong>
+                <?php echo esc_html( $site_info['active_theme']['name'] ); ?>
+                (v<?php echo esc_html( $site_info['active_theme']['version'] ); ?>)
+                <?php if ( ! empty( $site_info['active_theme']['author'] ) ) : ?>
+                    <?php esc_html_e( 'by', 'modules-insight' ); ?>
+                    <?php echo esc_html( $site_info['active_theme']['author'] ); ?>
+                <?php endif; ?>
+                <?php if ( ! empty( $site_info['active_theme']['theme_uri'] ) ) : ?>
+                    &mdash; <a href="<?php echo esc_url( $site_info['active_theme']['theme_uri'] ); ?>" target="_blank" rel="noopener noreferrer">
+                        <?php esc_html_e( 'Theme URI', 'modules-insight' ); ?>
+                    </a>
+                <?php endif; ?>
+            </li>
+        </ul>
 
         <h2><?php esc_html_e( 'Active Plugins', 'modules-insight' ); ?> (<?php echo (int) $summary['total_active']; ?>)</h2>
         <?php if ( ! empty( $active_list ) ) : ?>
@@ -323,6 +359,12 @@ function download_plugin_list_csv() {
     header( 'Content-Disposition: attachment; filename="' . sanitize_file_name( $filename ) . '"' );
 
     $output = fopen( 'php://output', 'w' );
+
+    // Site environment block
+    fputcsv( $output, array( 'Site Info' ) );
+    fputcsv( $output, array( 'WordPress Version', $data['site_info']['wp_version'] ) );
+    fputcsv( $output, array( 'Active Theme', $data['site_info']['active_theme']['name'], $data['site_info']['active_theme']['version'], $data['site_info']['active_theme']['author'], $data['site_info']['active_theme']['theme_uri'] ) );
+    fputcsv( $output, array() ); // blank separator row
 
     fputcsv( $output, array( 'Status', 'Name', 'Version', 'Path', 'Author', 'Plugin URI', 'Author URI', 'Network Active' ) );
 
