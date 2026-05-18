@@ -4,7 +4,7 @@ Tags: plugin management, plugin report, admin tools, plugin status, developer to
 Requires at least: 5.2
 Tested up to: 6.7
 Requires PHP: 7.2
-Stable tag: 2.9.9
+Stable tag: 3.0.0
 License: GPL-2.0-or-later
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
@@ -66,6 +66,14 @@ Yes! MI is completely safe to use on live sites as it performs no write operatio
 4. Example of "print" page using shortcode and automatic expanded description view using `<details>`.
 
 == Changelog ==
+
+= 3.0.0 =
+* Feature: Plugin data is now loaded on demand — a Scan button must be pressed before any data is retrieved. Nothing runs on page load automatically.
+* Perf: Plugin data is cached via transient (5 min) and auto-invalidated on plugin activate/deactivate/update and theme switch.
+* Perf: Replaced O(n) in_array() loop with O(1) array_flip()+isset() for active plugin lookups.
+* Perf: Cached is_single()||is_page() result before the plugin loop to avoid redundant calls per iteration.
+* Perf: Removed redundant wp_kses() pass in the dashboard widget — all output is already escaped at source.
+* Fix: Print CSS now correctly hides the download buttons wrapper (was targeting a stale selector).
 
 = 2.9.9 =
 * Feature: Report now includes WordPress version and active theme info (name, version, author, URI) in the HTML output and in both JSON and CSV exports.

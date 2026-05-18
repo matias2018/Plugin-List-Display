@@ -4,7 +4,7 @@ namespace modules_insight;
  * Plugin Name: Modules Insight
  * Plugin URI: https://github.com/matias2018/Plugin-List-Display
  * Description: Displays a list of installed plugins (active and inactive) via shortcode [plugin_list] and a dashboard widget. Includes WordPress version and active theme info. Allows downloading the list as JSON or CSV.
- * Version: 2.9.9
+ * Version: 3.0.0
  * Requires at least: 5.2
  * Requires PHP:      7.2
  * Author: Pedro Matias
@@ -27,8 +27,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 2.9.2
  */
 function modules_insight_register_assets() {
-    wp_register_style( 'modules-insight-style', plugins_url( 'css/modules-insight.css', __FILE__ ), array(), '2.9.9' );
-    wp_register_script( 'modules-insight-script', plugins_url( 'js/modules-insight.js', __FILE__ ), array(), '2.9.9', true );
+    wp_register_style( 'modules-insight-style', plugins_url( 'css/modules-insight.css', __FILE__ ), array(), '3.0.0' );
+    wp_register_script( 'modules-insight-script', plugins_url( 'js/modules-insight.js', __FILE__ ), array(), '3.0.0', true );
 }
 add_action( 'wp_enqueue_scripts', __NAMESPACE__ . '\modules_insight_register_assets' );
 
@@ -40,12 +40,16 @@ add_action( 'wp_enqueue_scripts', __NAMESPACE__ . '\modules_insight_register_ass
  * @return array structured plugin data.
  */
 function get_plugin_insight_data() {
+    $cached = get_transient( 'modules_insight_data' );
+    if ( false !== $cached ) {
+        return $cached;
+    }
+
     if ( ! function_exists( 'get_plugins' ) ) {
         require_once ABSPATH . 'wp-admin/includes/plugin.php';
     }
 
-    $all_plugins    = get_plugins();
-    // Get network-activated plugins if on multisite admin. Check site option as fallback.
+    $all_plugins     = get_plugins();
     $active_plugins  = \get_option( 'active_plugins', array() );
     $network_plugins = array();
     if ( is_multisite() ) {
@@ -54,21 +58,16 @@ function get_plugin_insight_data() {
             $active_plugins = array_merge( $active_plugins, array_keys( $network_plugins ) );
         }
     }
-    // Ensure uniqueness if merged
     $active_plugins = array_unique( $active_plugins );
+    $active_index   = array_flip( $active_plugins ); // O(1) lookups instead of O(n) in_array
 
     $active_list   = array();
     $inactive_list = array();
 
     foreach ( $all_plugins as $plugin_path => $plugin_data ) {
-        $is_active         = in_array( $plugin_path, $active_plugins, true );
         $is_network_active = isset( $network_plugins[ $plugin_path ] );
+        $is_active         = isset( $active_index[ $plugin_path ] ) || $is_network_active;
 
-        if ( $is_network_active ) {
-            $is_active = true;
-        }
-
-        // Basic plugin info - keep raw for JSON, escape during HTML output.
         $plugin_info = array(
             'name'        => $plugin_data['Name'],
             'version'     => $plugin_data['Version'],
@@ -77,7 +76,7 @@ function get_plugin_insight_data() {
             'author'      => $plugin_data['Author'],
             'plugin_uri'  => $plugin_data['PluginURI'],
             'author_uri'  => $plugin_data['AuthorURI'],
-            'network'     => $is_network_active, // Network status
+            'network'     => $is_network_active,
         );
 
         if ( $is_active ) {
@@ -87,10 +86,8 @@ function get_plugin_insight_data() {
         }
     }
 
-    // Sort alphabetically by name
-    usort($active_list, function($a, $b) { return strcasecmp($a['name'], $b['name']); }); // Case-insensitive sort
-    usort($inactive_list, function($a, $b) { return strcasecmp($a['name'], $b['name']); }); // Case-insensitive sort
-
+    usort( $active_list,   function( $a, $b ) { return strcasecmp( $a['name'], $b['name'] ); } );
+    usort( $inactive_list, function( $a, $b ) { return strcasecmp( $a['name'], $b['name'] ); } );
 
     $summary = array(
         'total_plugins'  => count( $all_plugins ),
@@ -110,13 +107,25 @@ function get_plugin_insight_data() {
         ),
     );
 
-    return array(
+    $result = array(
         'site_info' => $site_info,
         'active'    => $active_list,
         'inactive'  => $inactive_list,
         'summary'   => $summary,
     );
+
+    set_transient( 'modules_insight_data', $result, 5 * MINUTE_IN_SECONDS );
+
+    return $result;
 }
+
+function clear_plugin_insight_cache() {
+    delete_transient( 'modules_insight_data' );
+}
+add_action( 'activated_plugin',          __NAMESPACE__ . '\clear_plugin_insight_cache' );
+add_action( 'deactivated_plugin',        __NAMESPACE__ . '\clear_plugin_insight_cache' );
+add_action( 'upgrader_process_complete', __NAMESPACE__ . '\clear_plugin_insight_cache' );
+add_action( 'switch_theme',              __NAMESPACE__ . '\clear_plugin_insight_cache' );
 
 
 /**
@@ -142,82 +151,90 @@ function get_plugin_insight_data() {
  */
 
 function plugin_list_shortcode() {
-    // Check if user has capability to view plugins - adjust if needed for frontend use
     if ( ! current_user_can( 'activate_plugins' ) ) {
         return sprintf( '<p>%s</p>', esc_html__( 'You do not have permission to view this information.', 'modules-insight' ) );
     }
 
-    wp_enqueue_style( 'modules-insight-style' );
-    wp_enqueue_script( 'modules-insight-script' );
+    $scan_requested = isset( $_POST['modules_insight_scan_nonce'] )
+        && wp_verify_nonce( sanitize_key( $_POST['modules_insight_scan_nonce'] ), 'modules_insight_scan' );
 
-    $data          = get_plugin_insight_data();
-    $active_list   = $data['active'];
-    $inactive_list = $data['inactive'];
-    $summary       = $data['summary'];
-    $site_info     = $data['site_info'];
+    $is_page_or_post = is_single() || is_page();
 
-    // Use output buffering for cleaner HTML construction
     ob_start();
     ?>
     <div class="modules-insight-plugin-list">
-        <?php if ( is_single() || is_page() ) : ?>
-            <div class="MI-report-header">
-                <p>
-                    <strong>TARGET: </strong> 
-                    <span class="report-title">
-                        <?php echo esc_html( get_bloginfo( 'name' ) ); ?>
-                    </span>
-                </p>
-                <p>
-                    <strong>DATE: </strong>
-                    <span class="report-date">
-                        <?php echo esc_html( date_i18n( 'Y-m-d H:i:s' ) ); ?> 
-                            || <strong>URL: </strong>
-                    </span>
-                    <span class="report-url">
-                        <?php echo esc_html( get_bloginfo( 'url' ) ); ?>
-                    </span>
-                </p>
-            </div>
-        <?php endif; ?>
 
-        <h2><?php esc_html_e( 'Site Environment', 'modules-insight' ); ?></h2>
-        <ul>
-            <li>
-                <strong><?php esc_html_e( 'WordPress Version:', 'modules-insight' ); ?></strong>
-                <?php echo esc_html( $site_info['wp_version'] ); ?>
-            </li>
-            <li>
-                <strong><?php esc_html_e( 'Active Theme:', 'modules-insight' ); ?></strong>
-                <?php echo esc_html( $site_info['active_theme']['name'] ); ?>
-                (v<?php echo esc_html( $site_info['active_theme']['version'] ); ?>)
-                <?php if ( ! empty( $site_info['active_theme']['author'] ) ) : ?>
-                    <?php esc_html_e( 'by', 'modules-insight' ); ?>
-                    <?php echo esc_html( $site_info['active_theme']['author'] ); ?>
-                <?php endif; ?>
-                <?php if ( ! empty( $site_info['active_theme']['theme_uri'] ) ) : ?>
-                    &mdash; <a href="<?php echo esc_url( $site_info['active_theme']['theme_uri'] ); ?>" target="_blank" rel="noopener noreferrer">
-                        <?php esc_html_e( 'Theme URI', 'modules-insight' ); ?>
-                    </a>
-                <?php endif; ?>
-            </li>
-        </ul>
+        <form method="post" class="hideOnPrint">
+            <?php wp_nonce_field( 'modules_insight_scan', 'modules_insight_scan_nonce' ); ?>
+            <input type="submit" class="button button-primary" value="<?php esc_attr_e( 'Scan Plugins', 'modules-insight' ); ?>">
+        </form>
 
-        <h2><?php esc_html_e( 'Active Plugins', 'modules-insight' ); ?> (<?php echo (int) $summary['total_active']; ?>)</h2>
-        <?php if ( ! empty( $active_list ) ) : ?>
-            <ol>
-                <?php foreach ( $active_list as $plugin ) : ?>
-                    <li>
-                        <?php echo esc_html( $plugin['name'] ); ?> (v<?php echo esc_html( $plugin['version'] ); ?>)
+        <?php if ( $scan_requested ) :
+            wp_enqueue_style( 'modules-insight-style' );
+            wp_enqueue_script( 'modules-insight-script' );
+            $data          = get_plugin_insight_data();
+            $active_list   = $data['active'];
+            $inactive_list = $data['inactive'];
+            $summary       = $data['summary'];
+            $site_info     = $data['site_info'];
+        ?>
 
-                        <!-- If page/post display description -->
-                        <?php if ( is_single() || is_page() ) : ?>
+            <?php if ( $is_page_or_post ) : ?>
+                <div class="MI-report-header">
+                    <p>
+                        <strong>TARGET: </strong>
+                        <span class="report-title">
+                            <?php echo esc_html( get_bloginfo( 'name' ) ); ?>
+                        </span>
+                    </p>
+                    <p>
+                        <strong>DATE: </strong>
+                        <span class="report-date">
+                            <?php echo esc_html( date_i18n( 'Y-m-d H:i:s' ) ); ?>
+                                || <strong>URL: </strong>
+                        </span>
+                        <span class="report-url">
+                            <?php echo esc_html( get_bloginfo( 'url' ) ); ?>
+                        </span>
+                    </p>
+                </div>
+            <?php endif; ?>
+
+            <h2><?php esc_html_e( 'Site Environment', 'modules-insight' ); ?></h2>
+            <ul>
+                <li>
+                    <strong><?php esc_html_e( 'WordPress Version:', 'modules-insight' ); ?></strong>
+                    <?php echo esc_html( $site_info['wp_version'] ); ?>
+                </li>
+                <li>
+                    <strong><?php esc_html_e( 'Active Theme:', 'modules-insight' ); ?></strong>
+                    <?php echo esc_html( $site_info['active_theme']['name'] ); ?>
+                    (v<?php echo esc_html( $site_info['active_theme']['version'] ); ?>)
+                    <?php if ( ! empty( $site_info['active_theme']['author'] ) ) : ?>
+                        <?php esc_html_e( 'by', 'modules-insight' ); ?>
+                        <?php echo esc_html( $site_info['active_theme']['author'] ); ?>
+                    <?php endif; ?>
+                    <?php if ( ! empty( $site_info['active_theme']['theme_uri'] ) ) : ?>
+                        &mdash; <a href="<?php echo esc_url( $site_info['active_theme']['theme_uri'] ); ?>" target="_blank" rel="noopener noreferrer">
+                            <?php esc_html_e( 'Theme URI', 'modules-insight' ); ?>
+                        </a>
+                    <?php endif; ?>
+                </li>
+            </ul>
+
+            <h2><?php esc_html_e( 'Active Plugins', 'modules-insight' ); ?> (<?php echo (int) $summary['total_active']; ?>)</h2>
+            <?php if ( ! empty( $active_list ) ) : ?>
+                <ol>
+                    <?php foreach ( $active_list as $plugin ) : ?>
+                        <li>
+                            <?php echo esc_html( $plugin['name'] ); ?> (v<?php echo esc_html( $plugin['version'] ); ?>)
+
+                            <?php if ( $is_page_or_post ) : ?>
                                 <details>
                                     <summary><?php esc_html_e( 'Description', 'modules-insight' ); ?></summary>
                                     <p><?php echo wp_kses_post( $plugin['description'] ); ?></p>
                                 </details>
                             <?php endif; ?>
-                            <!-- Optional: Add links to plugin URI and author URI -->
                             <?php if ( ! empty( $plugin['plugin_uri'] ) ) : ?>
                                 <a href="<?php echo esc_url( $plugin['plugin_uri'] ); ?>" target="_blank" rel="noopener noreferrer">
                                     <?php esc_html_e( 'Plugin URI', 'modules-insight' ); ?>
@@ -228,58 +245,52 @@ function plugin_list_shortcode() {
                                     <?php esc_html_e( 'Author URI', 'modules-insight' ); ?>
                                 </a>
                             <?php endif; ?>
-                            <!-- Optional: Add network active status -->
-                        <?php if ( $plugin['network'] ) : ?>
-                            <strong>[<?php esc_html_e( 'Network Active', 'modules-insight' ); ?>]</strong>
-                        <?php endif; ?>
-                    </li>
-                    <hr>
-                <?php endforeach; ?>
-            </ol>
-        <?php else : ?>
-            <p><?php esc_html_e( 'No active plugins found.', 'modules-insight' ); ?></p>
-        <?php endif; ?>
+                            <?php if ( $plugin['network'] ) : ?>
+                                <strong>[<?php esc_html_e( 'Network Active', 'modules-insight' ); ?>]</strong>
+                            <?php endif; ?>
+                        </li>
+                        <hr>
+                    <?php endforeach; ?>
+                </ol>
+            <?php else : ?>
+                <p><?php esc_html_e( 'No active plugins found.', 'modules-insight' ); ?></p>
+            <?php endif; ?>
 
-        <h2><?php esc_html_e( 'Inactive Plugins', 'modules-insight' ); ?> (<?php echo (int) $summary['total_inactive']; ?>)</h2>
-        <?php if ( ! empty( $inactive_list ) ) : ?>
+            <h2><?php esc_html_e( 'Inactive Plugins', 'modules-insight' ); ?> (<?php echo (int) $summary['total_inactive']; ?>)</h2>
+            <?php if ( ! empty( $inactive_list ) ) : ?>
+                <ul>
+                    <?php foreach ( $inactive_list as $plugin ) : ?>
+                        <li>
+                            <?php echo esc_html( $plugin['name'] ); ?> (v<?php echo esc_html( $plugin['version'] ); ?>)
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php else : ?>
+                <p><?php esc_html_e( 'No inactive plugins found.', 'modules-insight' ); ?></p>
+            <?php endif; ?>
+
+            <h2><?php esc_html_e( 'Summary', 'modules-insight' ); ?></h2>
             <ul>
-                <?php foreach ( $inactive_list as $plugin ) : ?>
-                    <li>
-                        <?php echo esc_html( $plugin['name'] ); ?> (v<?php echo esc_html( $plugin['version'] ); ?>)
-                    </li>
-                <?php endforeach; ?>
+                <li>
+                    <?php
+                        /* translators: %d: Number of plugins. */
+                        printf( esc_html__( 'Total Plugins: %d', 'modules-insight' ), (int) $summary['total_plugins'] );
+                    ?>
+                </li>
+                <li>
+                    <?php
+                        /* translators: %d: Number of active plugins. */
+                        printf( esc_html__( 'Total Active Plugins: %d', 'modules-insight' ), (int) $summary['total_active'] );
+                    ?>
+                </li>
+                <li>
+                    <?php
+                        /* translators: %d: Number of inactive plugins. */
+                        printf( esc_html__( 'Total Inactive Plugins: %d', 'modules-insight' ), (int) $summary['total_inactive'] );
+                    ?>
+                </li>
             </ul>
-        <?php else : ?>
-            <p><?php esc_html_e( 'No inactive plugins found.', 'modules-insight' ); ?></p>
-        <?php endif; ?>
 
-        <h2><?php esc_html_e( 'Summary', 'modules-insight' ); ?></h2>
-        <ul>
-            <li>
-                <?php
-                    /* translators: %d: Number of plugins. */
-                    printf( esc_html__( 'Total Plugins: %d', 'modules-insight' ), (int) $summary['total_plugins'] );
-                ?>
-            </li>
-            <li>
-                <?php
-                    /* translators: %d: Number of active plugins. */
-                    printf( esc_html__( 'Total Active Plugins: %d', 'modules-insight' ), (int) $summary['total_active'] );
-                ?>
-            </li>
-            <li>
-                <?php
-                    /* translators: %d: Number of inactive plugins. */
-                    printf( esc_html__( 'Total Inactive Plugins: %d', 'modules-insight' ), (int) $summary['total_inactive'] );
-                ?>
-            </li>
-        </ul>
-
-        <?php
-        // --- Download Button Section ---
-        // IMPORTANT: Only show download button if user has 'activate_plugins' capability (usually Administrators).
-        ?>
-        <?php if ( current_user_can( 'activate_plugins' ) ) : ?>
             <div class="mi-download-buttons hideOnPrint" style="display:flex; gap:.5em; margin-top:1em; flex-wrap:wrap;">
                 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
                     <input type="hidden" name="action" value="download_plugin_list_json">
@@ -292,13 +303,11 @@ function plugin_list_shortcode() {
                     <input type="submit" class="button button-secondary" value="<?php esc_attr_e( 'Download List as CSV', 'modules-insight' ); ?>">
                 </form>
             </div>
-        <?php else : ?>
-            <p><small><?php esc_html_e( 'Download option available for administrators.', 'modules-insight' ); ?></small></p>
-        <?php endif; ?>
+
+        <?php endif; // $scan_requested ?>
 
     </div>
     <?php
-    // Return the buffered content
     return ob_get_clean();
 }
 add_shortcode( 'plugin_list', __NAMESPACE__ . '\plugin_list_shortcode' );
@@ -407,33 +416,8 @@ add_action( 'admin_post_download_plugin_list_csv', __NAMESPACE__ . '\download_pl
  * @since 2.1.0 Added wp_kses_post for escaping.
  */
 function plugin_list_dashboard_widget() {
-    // Echo the shortcode output. Wrap in wp_kses_post to allow the specific HTML
-    // tags generated by the shortcode (headings, lists, paragraphs, form elements, details, summary).
-    // We need to add details and summary to the allowed tags for wp_kses_post.
-    $allowed_html = array_merge(
-        wp_kses_allowed_html( 'post' ), // Get standard post tags
-        array( // Add our specific tags and attributes
-            'details' => array(
-                'style' => true,
-                'open' => true, // Allow the 'open' attribute if needed
-            ),
-            'summary' => array(
-                'style' => true,
-            ),
-            'form' => array(
-                'method' => true,
-                'action' => true,
-                'style' => true,
-            ),
-            'input' => array(
-                'type' => true,
-                'name' => true,
-                'value' => true,
-                'class' => true,
-            )
-        )
-    );
-    echo wp_kses( plugin_list_shortcode(), $allowed_html );
+    // Output is fully escaped at source inside plugin_list_shortcode().
+    echo plugin_list_shortcode(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 }
 
 /**

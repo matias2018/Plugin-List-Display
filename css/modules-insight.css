@@ -1,9 +1,9 @@
 /* Version 2.9.2 */
 /* Added fusion-tb-footer and fusion-footer classes for avada custom footers*/
 @media print {
-    input[type="submit"].button.button-primary.hideOnPrint, 
+    .hideOnPrint,
     footer,
-    .fusion-tb-footer, 
+    .fusion-tb-footer,
     .fusion-footer,
     header {
         display: none !important;
