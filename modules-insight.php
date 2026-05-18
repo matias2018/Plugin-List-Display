@@ -3,8 +3,8 @@ namespace modules_insight;
 /**
  * Plugin Name: Modules Insight
  * Plugin URI: https://github.com/matias2018/Plugin-List-Display
- * Description: Displays a list of installed plugins (active and inactive) via shortcode [plugin_list] and a dashboard widget. Allows downloading the list as JSON.
- * Version: 2.9.7
+ * Description: Displays a list of installed plugins (active and inactive) via shortcode [plugin_list] and a dashboard widget. Allows downloading the list as JSON or CSV.
+ * Version: 2.9.8
  * Requires at least: 5.2
  * Requires PHP:      7.2
  * Author: Pedro Matias
@@ -27,8 +27,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 2.9.2
  */
 function modules_insight_register_assets() {
-    wp_register_style( 'modules-insight-style', plugins_url( 'css/modules-insight.css', __FILE__ ), array(), '2.9.7' );
-    wp_register_script( 'modules-insight-script', plugins_url( 'js/modules-insight.js', __FILE__ ), array(), '2.9.7', true );
+    wp_register_style( 'modules-insight-style', plugins_url( 'css/modules-insight.css', __FILE__ ), array(), '2.9.8' );
+    wp_register_script( 'modules-insight-script', plugins_url( 'js/modules-insight.js', __FILE__ ), array(), '2.9.8', true );
 }
 add_action( 'wp_enqueue_scripts', __NAMESPACE__ . '\modules_insight_register_assets' );
 
@@ -244,15 +244,19 @@ function plugin_list_shortcode() {
         // IMPORTANT: Only show download button if user has 'activate_plugins' capability (usually Administrators).
         ?>
         <?php if ( current_user_can( 'activate_plugins' ) ) : ?>
-            <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin-top: 1em;">
-                <input type="hidden" name="action" value="download_plugin_list_json">
-                <?php wp_nonce_field( 'download_plugin_list', 'plugin_list_nonce' ); ?>
-                <input type="hidden" name="plugin_list" value="<?php echo esc_attr( wp_json_encode( $data ) ); ?>">
-                <!-- Hide if list is being displayed on a page instead of admin dashboard -->
-                <input type="submit" class="button button-primary hideOnPrint" value="<?php esc_attr_e( 'Download List as JSON', 'modules-insight' ); ?>">
-            </form>
+            <div class="mi-download-buttons hideOnPrint" style="display:flex; gap:.5em; margin-top:1em; flex-wrap:wrap;">
+                <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+                    <input type="hidden" name="action" value="download_plugin_list_json">
+                    <?php wp_nonce_field( 'download_plugin_list', 'plugin_list_nonce' ); ?>
+                    <input type="submit" class="button button-primary" value="<?php esc_attr_e( 'Download List as JSON', 'modules-insight' ); ?>">
+                </form>
+                <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+                    <input type="hidden" name="action" value="download_plugin_list_csv">
+                    <?php wp_nonce_field( 'download_plugin_list_csv', 'plugin_list_csv_nonce' ); ?>
+                    <input type="submit" class="button button-secondary" value="<?php esc_attr_e( 'Download List as CSV', 'modules-insight' ); ?>">
+                </form>
+            </div>
         <?php else : ?>
-            <?php // Optional: Add a message if the user *cannot* see the button ?>
             <p><small><?php esc_html_e( 'Download option available for administrators.', 'modules-insight' ); ?></small></p>
         <?php endif; ?>
 
@@ -298,6 +302,60 @@ function download_plugin_list_json() {
 }
 // Hook only for logged-in users via admin-post
 add_action( 'admin_post_download_plugin_list_json', __NAMESPACE__ . '\download_plugin_list_json' );
+
+
+/**
+ * Handles the download request for the plugin list CSV file.
+ */
+function download_plugin_list_csv() {
+    if ( ! isset( $_POST['plugin_list_csv_nonce'] ) || ! wp_verify_nonce( sanitize_key( $_POST['plugin_list_csv_nonce'] ), 'download_plugin_list_csv' ) ) {
+        wp_die( esc_html__( 'Invalid security token.', 'modules-insight' ), esc_html__( 'Nonce Error', 'modules-insight' ), array( 'response' => 403 ) );
+    }
+
+    if ( ! current_user_can( 'activate_plugins' ) ) {
+        wp_die( esc_html__( 'You do not have sufficient permissions to download this file.', 'modules-insight' ), esc_html__( 'Permission Denied', 'modules-insight' ), array( 'response' => 403 ) );
+    }
+
+    $data     = get_plugin_insight_data();
+    $filename = 'modules-insight-plugin-list-' . current_time( 'Y-m-d' ) . '.csv';
+
+    header( 'Content-Type: text/csv; charset=' . get_option( 'blog_charset' ) );
+    header( 'Content-Disposition: attachment; filename="' . sanitize_file_name( $filename ) . '"' );
+
+    $output = fopen( 'php://output', 'w' );
+
+    fputcsv( $output, array( 'Status', 'Name', 'Version', 'Path', 'Author', 'Plugin URI', 'Author URI', 'Network Active' ) );
+
+    foreach ( $data['active'] as $plugin ) {
+        fputcsv( $output, array(
+            'Active',
+            $plugin['name'],
+            $plugin['version'],
+            $plugin['path'],
+            $plugin['author'],
+            $plugin['plugin_uri'],
+            $plugin['author_uri'],
+            $plugin['network'] ? 'Yes' : 'No',
+        ) );
+    }
+
+    foreach ( $data['inactive'] as $plugin ) {
+        fputcsv( $output, array(
+            'Inactive',
+            $plugin['name'],
+            $plugin['version'],
+            $plugin['path'],
+            $plugin['author'],
+            $plugin['plugin_uri'],
+            $plugin['author_uri'],
+            'No',
+        ) );
+    }
+
+    fclose( $output );
+    exit;
+}
+add_action( 'admin_post_download_plugin_list_csv', __NAMESPACE__ . '\download_plugin_list_csv' );
 
 
 /**

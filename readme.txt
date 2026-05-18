@@ -4,7 +4,7 @@ Tags: plugin management, plugin report, admin tools, plugin status, developer to
 Requires at least: 5.2
 Tested up to: 6.7
 Requires PHP: 7.2
-Stable tag: 2.9.7
+Stable tag: 2.9.8
 License: GPL-2.0-or-later
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
@@ -66,6 +66,9 @@ Yes! MI is completely safe to use on live sites as it performs no write operatio
 4. Example of "print" page using shortcode and automatic expanded description view using `<details>`.
 
 == Changelog ==
+
+= 2.9.8 =
+* Feature: Added CSV export — administrators can now download the plugin list as a .csv file alongside the existing JSON export.
 
 = 2.9.7 =
 * Version bump.
