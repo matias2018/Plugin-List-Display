@@ -4,7 +4,7 @@ Tags: plugin management, plugin report, admin tools, plugin status, developer to
 Requires at least: 5.2
 Tested up to: 6.7
 Requires PHP: 7.2
-Stable tag: 3.0.0
+Stable tag: 3.1.0
 License: GPL-2.0-or-later
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
@@ -66,6 +66,11 @@ Yes! MI is completely safe to use on live sites as it performs no write operatio
 4. Example of "print" page using shortcode and automatic expanded description view using `<details>`.
 
 == Changelog ==
+
+= 3.1.0 =
+* Feature: PHP Compatibility Checker — after a scan, a "Check PHP 8.3 Compatibility" button queries the WordPress.org API for each plugin (last updated, minimum PHP required) and displays a colour-coded risk table (Low / Medium / High / Not on WP.org). Results are cached per plugin for 24 hours.
+* Feature: JSON and CSV exports now include the cached compatibility data (last updated, min PHP, risk level) for any plugin that has been checked. Exports without a prior check show "not_checked".
+* Feature: Plugin assets now load on the admin dashboard as well as the frontend, enabling the compatibility checker inside the dashboard widget.
 
 = 3.0.0 =
 * Feature: Plugin data is now loaded on demand — a Scan button must be pressed before any data is retrieved. Nothing runs on page load automatically.
