@@ -8,55 +8,109 @@ Stable tag: 3.1.0
 License: GPL-2.0-or-later
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
-Provides a quick overview of installed WordPress plugins with their status, exportable as JSON.
+Audit installed plugins, assess PHP upgrade risk via the WordPress.org API, and export full reports as JSON or CSV.
 
 == Description ==
 
-**Modules Insight** is a simple WordPress plugin that lists all installed plugins, showing which are **active** and which are **inactive**. Ideal for developers and site managers needing a quick status overview.
+**Modules Insight** helps WordPress developers and site managers audit installed plugins, assess the risk of upgrading PHP, and export complete reports — all from a single on-demand scan.
 
-MI adds a widget to your **Dashboard** and provides a shortcode `[plugin_list]` for displaying the plugin status list. It also allows **Administrators** to download the list as a `.json` report directly from the widget or shortcode output.
+=== PHP Upgrade Risk Evaluator ===
 
-MI is completely read-only and does **not** make any changes to your site's plugin activation status.
+Planning a server PHP upgrade? MI queries the **WordPress.org API** for each installed plugin and produces a colour-coded risk table showing how likely each plugin is to break on your target PHP version.
 
-=== ✨ Key Features ===
+Each plugin is rated **Low**, **Medium**, **High**, or **Not on WP.org** based on two signals:
 
-- 📋 Lists all installed plugins (active, inactive, network active)
-- ✅ Includes plugin name and version. 
-- 📊 Displays a summary count of plugins
-- 📁 Allows **Administrators** to export plugin data as a `.json` report
-- 🖥 Adds a convenient Dashboard Widget
-- `[plugin_list]` Shortcode support for display anywhere
--   - Upcoming: Plugin description on generated page
-- 🛡 100% read-only — safe for production use
+**1. Last Updated** — how recently the plugin received a release on WordPress.org.
+**2. Minimum PHP Declared** — the `Requires PHP` field set by the plugin author.
 
-=== 💡 Use Cases ===
+Risk is assigned as follows:
 
-- 🧾 Client reports on installed plugins
-- 🚧 Pre-deployment or pre-update plugin checks
-- 🔒 Identifying potentially unused plugins for cleanup
-- 👥 Sharing plugin status easily with your team or support
+* **High** — Not updated in over 3 years, or declares a minimum PHP below 7.0. These carry the greatest risk of breaking on PHP 8.x and should be investigated before upgrading.
+* **Medium** — Falls between High and Low. Test on a staging environment before upgrading production.
+* **Low** — Updated within the last 12–18 months and declares PHP 7.4 or higher as its minimum. Likely compatible, but a quick smoke test after upgrading is still recommended.
+* **Not on WP.org** — Not found in the WordPress.org directory (premium plugins, custom code). Compatibility must be verified manually with the vendor.
+
+**Important:** risk ratings are based on publicly available metadata, not code analysis. A Low-rated plugin could still have incompatibilities; a High-rated plugin might work perfectly. Use the table as a triage guide, not a guarantee. Always test on a staging environment before upgrading PHP on a live server.
+
+Results from the WordPress.org API are cached per plugin for 24 hours to avoid unnecessary external requests.
+
+=== Plugin List and Reports ===
+
+MI lists all installed plugins (active, inactive, and network-active on multisite) with version numbers, author details, and descriptions. It also reports the active WordPress version and active theme.
+
+Reports can be exported as `.json` or `.csv`. Both formats include the PHP compatibility data if a check has been run prior to export.
+
+=== Key Features ===
+
+* PHP upgrade risk evaluation via the WordPress.org API
+* Colour-coded risk table: Low / Medium / High / Not on WP.org
+* Lists all installed plugins with status, version, author, and URIs
+* Reports WordPress version and active theme
+* Export as JSON or CSV (includes compat data when available)
+* Dashboard widget and `[plugin_list]` shortcode
+* Scan-on-demand — nothing runs automatically on page load
+* 100% read-only — safe for production use
+
+=== Use Cases ===
+
+* Assessing risk before upgrading PHP on a server
+* Managing multiple WordPress sites and keeping plugins audited
+* Client-facing reports on installed plugins
+* Pre-deployment or pre-update plugin audits
 
 == Installation ==
 
-1. Upload the `modules-insight` folder to the `/wp-content/plugins/` directory, or install the plugin through the WordPress plugin screen directly (Plugins > Add New).
-2. Activate the plugin through the ‘Plugins’ menu in WordPress.
+1. Upload the `modules-insight` folder to the `/wp-content/plugins/` directory, or install through the WordPress plugin screen directly (Plugins > Add New).
+2. Activate the plugin through the Plugins menu in WordPress.
 3. Check your **Dashboard** for the "Modules Insight - Plugin List" widget.
-4. Alternatively, use the shortcode `[plugin_list]` on any page or post to display the list.
-5. Administrators will see a "Download List as JSON" button within the widget/shortcode output.
+4. Alternatively, use the shortcode `[plugin_list]` on any page or post.
+5. Press **Scan Plugins** to load the plugin list, then press **Check PHP 8.3 Compatibility** to run the risk evaluation.
 
 == Frequently Asked Questions ==
 
+= How is the PHP upgrade risk calculated? =
+
+Risk is based on two signals pulled from the WordPress.org plugin directory for each plugin:
+
+**1. Last Updated** — how recently the plugin received a published release.
+**2. Minimum PHP Declared** — the `Requires PHP` value the author set on WordPress.org.
+
+The rating is assigned as follows:
+
+* **High** — Not updated in over 3 years, OR declares a minimum PHP below 7.0. Investigate before upgrading.
+* **Low** — Updated within 12–18 months AND declares PHP 7.4 or higher as its minimum.
+* **Medium** — Anything between High and Low. Test on staging before upgrading production.
+* **Not on WP.org** — Plugin not found in the directory. Risk must be assessed manually.
+
+These are metadata signals, not a code scan. Always test on a staging environment before upgrading PHP on a live server.
+
+= Why is my recently-updated plugin showing as Medium instead of Low? =
+
+The most common reason is that the plugin’s `Requires PHP` field on WordPress.org is set below 7.4 — even if the plugin runs perfectly on modern PHP. Authors often set this conservatively and forget to update it. In this case Medium does not mean the plugin is broken; it means the metadata is incomplete. Check the plugin’s own changelog or test directly on staging.
+
+= What does "Not on WP.org" mean in the risk table? =
+
+The plugin was not found in the WordPress.org directory. This is normal for premium plugins (WooCommerce extensions, page builder add-ons, etc.) and custom-built plugins. Their compatibility cannot be assessed automatically — check with the vendor or test directly on a staging environment running the target PHP version.
+
+= Are the risk ratings a guarantee? =
+
+No. They are a triage guide based on publicly available metadata. A Low-rated plugin could still have incompatibilities; a High-rated plugin might work perfectly. The table helps you decide where to focus your testing effort, not whether to skip testing altogether.
+
 = Does this plugin make any changes to my site? =
-No. MI is read-only. It does not activate, deactivate, install, or delete any plugins.
 
-= Who can see the plugin list and download the JSON file? =
-By default, the list and download button are visible only to users with the `activate_plugins` capability (typically Administrators). You can adjust capability checks in the code if needed for other roles, but be mindful of security implications.
+No. MI is completely read-only. It does not activate, deactivate, install, or delete any plugins.
 
-= What format is the export file? =
-The plugin exports data as a `.json` file, timestamped with the date of export (according to your site's timezone).
+= Who can see the plugin list and run the compatibility check? =
+
+Only users with the `activate_plugins` capability (typically Administrators).
+
+= What formats can I export? =
+
+JSON and CSV. Both include the PHP compatibility data (last updated, minimum PHP, risk level) for any plugin that has been checked. Plugins not yet checked show `not_checked` in those fields.
 
 = Can I use this on a live/production site? =
-Yes! MI is completely safe to use on live sites as it performs no write operations.
+
+Yes. MI performs no write operations and loads no assets unless an admin explicitly presses Scan.
 
 == Screenshots ==
 

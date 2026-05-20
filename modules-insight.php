@@ -3,7 +3,7 @@ namespace modules_insight;
 /**
  * Plugin Name: Modules Insight
  * Plugin URI: https://github.com/matias2018/Plugin-List-Display
- * Description: Displays a list of installed plugins (active and inactive) via shortcode [plugin_list] and a dashboard widget. Includes WordPress version and active theme info. Allows downloading the list as JSON or CSV.
+ * Description: Audit installed plugins, assess PHP upgrade risk via the WordPress.org API, and export full reports as JSON or CSV. Scan-on-demand — nothing runs automatically.
  * Version: 3.1.0
  * Requires at least: 5.2
  * Requires PHP:      7.2
