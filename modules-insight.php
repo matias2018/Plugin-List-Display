@@ -4,7 +4,7 @@ namespace modules_insight;
  * Plugin Name: Modules Insight
  * Plugin URI: https://github.com/matias2018/Plugin-List-Display
  * Description: Audit installed plugins, assess PHP upgrade risk via the WordPress.org API, and export full reports as JSON or CSV. Scan-on-demand — nothing runs automatically.
- * Version: 3.1.0
+ * Version: 3.1.1
  * Requires at least: 5.2
  * Requires PHP:      7.2
  * Author: Pedro Matias
@@ -27,8 +27,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 2.9.2
  */
 function modules_insight_register_assets() {
-    wp_register_style( 'modules-insight-style', plugins_url( 'css/modules-insight.css', __FILE__ ), array(), '3.1.0' );
-    wp_register_script( 'modules-insight-script', plugins_url( 'js/modules-insight.js', __FILE__ ), array(), '3.1.0', true );
+    wp_register_style( 'modules-insight-style', plugins_url( 'css/modules-insight.css', __FILE__ ), array(), '3.1.1' );
+    wp_register_script( 'modules-insight-script', plugins_url( 'js/modules-insight.js', __FILE__ ), array(), '3.1.1', true );
 }
 add_action( 'init', __NAMESPACE__ . '\modules_insight_register_assets' );
 

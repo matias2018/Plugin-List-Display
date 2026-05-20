@@ -4,7 +4,7 @@ Tags: plugin management, plugin report, admin tools, plugin status, developer to
 Requires at least: 5.2
 Tested up to: 6.7
 Requires PHP: 7.2
-Stable tag: 3.1.0
+Stable tag: 3.1.1
 License: GPL-2.0-or-later
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
@@ -120,6 +120,9 @@ Yes. MI performs no write operations and loads no assets unless an admin explici
 4. Example of "print" page using shortcode and automatic expanded description view using `<details>`.
 
 == Changelog ==
+
+= 3.1.1 =
+* Docs: Rewrote plugin description and FAQ to lead with the PHP upgrade risk evaluator and document how risk is calculated.
 
 = 3.1.0 =
 * Feature: PHP Compatibility Checker — after a scan, a "Check PHP 8.3 Compatibility" button queries the WordPress.org API for each plugin (last updated, minimum PHP required) and displays a colour-coded risk table (Low / Medium / High / Not on WP.org). Results are cached per plugin for 24 hours.
