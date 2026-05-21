@@ -4,7 +4,7 @@ Tags: plugin management, plugin report, admin tools, plugin status, developer to
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 8.0
-Stable tag: 3.1.3
+Stable tag: 3.2.0
 License: GPL-2.0-or-later
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
@@ -123,6 +123,11 @@ Yes. MI performs no write operations and loads no assets unless an admin explici
 4. Example of "print" page using shortcode and automatic expanded description view using `<details>`.
 
 == Changelog ==
+
+= 3.2.0 =
+* Feature: Target PHP version selector — choose PHP 8.0 through 8.4 before running the compatibility check. Risk thresholds shift with the selected version.
+* Feature: "Tested up to (WP)" is now fetched from WordPress.org and shown as a third signal. An age-driven High rating is softened to Medium when the plugin declares compatibility with a recent WordPress version (6.3+), suggesting the author is actively maintaining it.
+* Export: JSON and CSV exports now include the "Tested up to (WP)" field and reflect the selected target PHP version in the risk column header.
 
 = 3.1.3 =
 * Fix: Screenshots and plugin icon now correctly deployed to the WordPress.org assets directory.
