@@ -4,7 +4,7 @@ Tags: plugin management, plugin report, admin tools, plugin status, developer to
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 8.0
-Stable tag: 3.1.2
+Stable tag: 3.1.3
 License: GPL-2.0-or-later
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
@@ -123,6 +123,9 @@ Yes. MI performs no write operations and loads no assets unless an admin explici
 4. Example of "print" page using shortcode and automatic expanded description view using `<details>`.
 
 == Changelog ==
+
+= 3.1.3 =
+* Fix: Screenshots and plugin icon now correctly deployed to the WordPress.org assets directory.
 
 = 3.1.2 =
 * Compat: Tested and confirmed compatible with WordPress 7.0.

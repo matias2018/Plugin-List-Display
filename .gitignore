@@ -69,7 +69,7 @@ wp-content/upgrade/
 
 # Theme specific
 languages/*.mo
-screenshot-*.png
+/screenshot-*.png
 
 # Ignore all ai related files
 *.ai
