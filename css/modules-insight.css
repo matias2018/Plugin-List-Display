@@ -51,11 +51,17 @@ span.report-title {
 }
 
 /* Compatibility table */
+.mi-compat-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-top: 0.75em;
+}
+
 .mi-compat-table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 0.75em;
     font-size: 13px;
+    min-width: 480px;
 }
 .mi-compat-table th,
 .mi-compat-table td {

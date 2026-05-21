@@ -4,7 +4,7 @@ Tags: plugin management, plugin report, admin tools, plugin status, developer to
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 8.0
-Stable tag: 3.2.1
+Stable tag: 3.2.2
 License: GPL-2.0-or-later
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
@@ -123,6 +123,11 @@ Yes. MI performs no write operations and loads no assets unless an admin explici
 4. Example of "print" page using shortcode and automatic expanded description view using `<details>`.
 
 == Changelog ==
+
+= 3.2.2 =
+* Fix: Compat table no longer overflows the dashboard widget — wrapped in a horizontally scrollable container.
+* Fix: "Tested up to (WP)" now always reflects fresh data — stale transients built before 3.2.0 are ignored and re-fetched automatically.
+* Fix: Plugin icon now shown in the dashboard widget title bar.
 
 = 3.2.1 =
 * Fix: Renamed icon-265x256.png to icon-256x256.png so WordPress.org recognises and displays the plugin icon correctly.

@@ -4,7 +4,7 @@ namespace modules_insight;
  * Plugin Name: Modules Insight
  * Plugin URI: https://aura-plugins.com
  * Description: Audit installed plugins, assess PHP upgrade risk via the WordPress.org API, and export full reports as JSON or CSV. Scan-on-demand — nothing runs automatically.
- * Version: 3.2.1
+ * Version: 3.2.2
  * Requires at least: 6.0
  * Requires PHP:      8.0
  * Author: Pedro Matias
@@ -252,7 +252,8 @@ function ajax_check_compat() {
 
     $cache_key = 'mi_compat_' . $slug;
     $cached    = get_transient( $cache_key );
-    if ( false !== $cached ) {
+    // Only use cache if it was stored by 3.2.0+ (has tested_up_to) or is a not_found entry.
+    if ( false !== $cached && ( ! empty( $cached['not_found'] ) || array_key_exists( 'tested_up_to', $cached ) ) ) {
         wp_send_json_success( $cached );
     }
 
@@ -482,6 +483,7 @@ function plugin_list_shortcode() {
                 </button>
             </div>
             <p id="mi-compat-progress" style="display:none;"></p>
+            <div class="mi-compat-table-wrapper">
             <table id="mi-compat-table" class="mi-compat-table" style="display:none;">
                 <thead>
                     <tr>
@@ -516,6 +518,7 @@ function plugin_list_shortcode() {
                     <?php endforeach; ?>
                 </tbody>
             </table>
+            </div><!-- .mi-compat-table-wrapper -->
 
             <div class="mi-download-buttons hideOnPrint" style="display:flex; gap:.5em; margin-top:1em; flex-wrap:wrap;">
                 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
@@ -685,10 +688,12 @@ function add_plugin_list_dashboard_widget() {
         return;
     }
 
+    $icon = '<img src="' . esc_url( plugins_url( 'assets/icon-128x128.png', __FILE__ ) ) . '" '
+          . 'style="height:1em;width:1em;vertical-align:middle;margin-right:.4em;border-radius:3px;object-fit:cover;" alt="">';
     wp_add_dashboard_widget(
-        'modules_insight_plugin_list_widget',          
-        __( 'Modules Insight - Plugin List', 'modules-insight' ),
-        __NAMESPACE__ . '\plugin_list_dashboard_widget' // Display function
+        'modules_insight_plugin_list_widget',
+        $icon . __( 'Modules Insight', 'modules-insight' ),
+        __NAMESPACE__ . '\plugin_list_dashboard_widget'
     );
 }
 add_action( 'wp_dashboard_setup', __NAMESPACE__ . '\add_plugin_list_dashboard_widget' );
