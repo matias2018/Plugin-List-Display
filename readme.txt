@@ -4,7 +4,7 @@ Tags: plugin management, plugin report, admin tools, plugin status, developer to
 Requires at least: 6.0
 Tested up to: 7.0
 Requires PHP: 8.0
-Stable tag: 3.2.0
+Stable tag: 3.2.1
 License: GPL-2.0-or-later
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
@@ -123,6 +123,10 @@ Yes. MI performs no write operations and loads no assets unless an admin explici
 4. Example of "print" page using shortcode and automatic expanded description view using `<details>`.
 
 == Changelog ==
+
+= 3.2.1 =
+* Fix: Renamed icon-265x256.png to icon-256x256.png so WordPress.org recognises and displays the plugin icon correctly.
+* Updated plugin icons (128x128 and 256x256).
 
 = 3.2.0 =
 * Feature: Target PHP version selector — choose PHP 8.0 through 8.4 before running the compatibility check. Risk thresholds shift with the selected version.
