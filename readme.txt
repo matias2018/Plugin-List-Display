@@ -1,10 +1,10 @@
 === Modules Insight ===
 Contributors: Pedro Matias
 Tags: plugin management, plugin report, admin tools, plugin status, developer tools
-Requires at least: 5.2
-Tested up to: 6.7
-Requires PHP: 7.2
-Stable tag: 3.1.1
+Requires at least: 6.0
+Tested up to: 7.0
+Requires PHP: 8.0
+Stable tag: 3.1.2
 License: GPL-2.0-or-later
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
@@ -40,6 +40,8 @@ MI lists all installed plugins (active, inactive, and network-active on multisit
 
 Reports can be exported as `.json` or `.csv`. Both formats include the PHP compatibility data if a check has been run prior to export.
 
+Tested and fully compatible with **WordPress 7.0**.
+
 === Key Features ===
 
 * PHP upgrade risk evaluation via the WordPress.org API
@@ -62,9 +64,10 @@ Reports can be exported as `.json` or `.csv`. Both formats include the PHP compa
 
 1. Upload the `modules-insight` folder to the `/wp-content/plugins/` directory, or install through the WordPress plugin screen directly (Plugins > Add New).
 2. Activate the plugin through the Plugins menu in WordPress.
-3. Check your **Dashboard** for the "Modules Insight - Plugin List" widget.
-4. Alternatively, use the shortcode `[plugin_list]` on any page or post.
-5. Press **Scan Plugins** to load the plugin list, then press **Check PHP 8.3 Compatibility** to run the risk evaluation.
+3. Check your **Dashboard** for the "Modules Insight - Plugin List" widget, or use the shortcode `[plugin_list]` on any page or post.
+4. Press **Scan Plugins** to load the plugin list.
+5. Press **Check PHP 8.3 Compatibility** to run the risk evaluation against the WordPress.org API.
+6. Once the scan is complete, press **Download List as JSON** or **Download List as CSV** to export the full report, including the compatibility data.
 
 == Frequently Asked Questions ==
 
@@ -120,6 +123,12 @@ Yes. MI performs no write operations and loads no assets unless an admin explici
 4. Example of "print" page using shortcode and automatic expanded description view using `<details>`.
 
 == Changelog ==
+
+= 3.1.2 =
+* Compat: Tested and confirmed compatible with WordPress 7.0.
+* Updated minimum requirements: WordPress 6.0+, PHP 8.0+.
+* Updated screenshots and plugin icon.
+* Plugin URI updated to https://aura-plugins.com.
 
 = 3.1.1 =
 * Docs: Rewrote plugin description and FAQ to lead with the PHP upgrade risk evaluator and document how risk is calculated.

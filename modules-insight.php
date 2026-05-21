@@ -2,11 +2,11 @@
 namespace modules_insight;
 /**
  * Plugin Name: Modules Insight
- * Plugin URI: https://github.com/matias2018/Plugin-List-Display
+ * Plugin URI: https://aura-plugins.com
  * Description: Audit installed plugins, assess PHP upgrade risk via the WordPress.org API, and export full reports as JSON or CSV. Scan-on-demand — nothing runs automatically.
- * Version: 3.1.1
- * Requires at least: 5.2
- * Requires PHP:      7.2
+ * Version: 3.1.2
+ * Requires at least: 6.0
+ * Requires PHP:      8.0
  * Author: Pedro Matias
  * Author URI: https://pedromatias.dev
  * License: GPL-2.0+
