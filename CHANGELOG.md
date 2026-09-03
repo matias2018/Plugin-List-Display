@@ -2,6 +2,28 @@
 
 All notable changes to Modules Insight are documented in this file.
 
+## [4.0.0] - 2026-09-03
+
+### Added
+- **WordPress upgrade risk** — a second risk column alongside PHP, rated against a selectable target WordPress version (6.7–7.1). Derived from each plugin's "Tested up to" value on WordPress.org and its last-updated age via a new `calculate_wp_compat_risk()` (mirrored by `calcWpRisk()` in JS). No additional WordPress.org API fields are fetched.
+- **PHP 8.5** as a target-PHP option, with its own Low-risk thresholds.
+- **Google Sheets export** — `Send report to Google Sheet` POSTs the report to a Google Apps Script Web App the site owner deploys once (URL + shared secret token, stored under Settings → Modules Insight or a `wp-config.php` constant). No Google Cloud project, no OAuth, no stored API keys. New `includes/google-sheets.php`.
+- **Ask AI** — for plugins rated Medium / High / Not on WP.org, a free-text question answered through the WordPress 7.0 core AI Client (`wp_ai_client_prompt()`). Self-hides when the core API or a provider is unavailable. Answers cached 12 hours per question. New `includes/ai.php`.
+- Dedicated **Settings → Modules Insight** screen (`includes/settings.php`) built with the Settings API.
+
+### Changed
+- The compatibility check now evaluates PHP and WordPress in a single pass; the button is relabelled "Check Upgrade Compatibility" and the section heading to "Upgrade Compatibility Check".
+- JSON export records the selected `targets` and each plugin's `compat.wp_risk`; CSV gains a `WP <target> Risk` column. CSV/Sheets cell values beginning with `= + - @` are prefixed with `'` to prevent spreadsheet formula injection. CSV site-info block reformatted into the shared row builder.
+- Asset `ver` strings are tied to `MODULES_INSIGHT_VERSION` again (were pinned at `3.2.0`).
+- `modules-insight.php` reduced to a bootstrap that defines shared target constants and loads `includes/`.
+
+### Fixed
+- Translation files renamed `modules_insight-*` → `modules-insight-*` so WordPress loads them for the `modules-insight` text domain (they never loaded before). POT regenerated.
+- `README.md` requirements corrected from "WordPress 5.2 / PHP 7.2" to "WordPress 6.0 / PHP 8.0" to match the plugin header.
+- `Tested up to` raised to WordPress 7.1.
+
+---
+
 ## [2.9.2] - 2026-05-15
 
 ### Fixed

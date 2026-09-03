@@ -1,4 +1,4 @@
-/* Version 2.9.2 */
+/* Version 4.0.0 */
 /* Added fusion-tb-footer and fusion-footer classes for avada custom footers*/
 @media print {
     .hideOnPrint,
@@ -61,7 +61,7 @@ span.report-title {
     width: 100%;
     border-collapse: collapse;
     font-size: 13px;
-    min-width: 480px;
+    min-width: 640px;
 }
 .mi-compat-table th,
 .mi-compat-table td {
@@ -76,16 +76,18 @@ span.report-title {
 }
 
 /* Row risk backgrounds */
-.mi-row-low    { background-color: #f0fff0; }
-.mi-row-medium { background-color: #fffbe6; }
-.mi-row-high   { background-color: #fff0f0; }
-.mi-row-manual { background-color: #fafafa; }
+.mi-row-low     { background-color: #f0fff0; }
+.mi-row-medium  { background-color: #fffbe6; }
+.mi-row-high    { background-color: #fff0f0; }
+.mi-row-manual  { background-color: #fafafa; }
+.mi-row-unknown { background-color: #fafafa; }
 
 /* Risk cell labels */
-.mi-risk-low    { color: #155724; font-weight: 600; }
-.mi-risk-medium { color: #856404; font-weight: 600; }
-.mi-risk-high   { color: #721c24; font-weight: 600; }
-.mi-risk-manual { color: #555;    font-style: italic; }
+.mi-risk-low     { color: #155724; font-weight: 600; }
+.mi-risk-medium  { color: #856404; font-weight: 600; }
+.mi-risk-high    { color: #721c24; font-weight: 600; }
+.mi-risk-manual  { color: #555;    font-style: italic; }
+.mi-risk-unknown { color: #555;    font-style: italic; }
 
 /* Progress line */
 #mi-compat-progress {
@@ -94,3 +96,30 @@ span.report-title {
     color: #666;
     font-size: 13px;
 }
+
+/* Ask AI */
+.mi-compat-table .mi-ai-cell { white-space: nowrap; }
+
+#mi-ai-panel {
+    margin: 1em 0;
+    padding: 12px 14px;
+    border: 1px solid #c3c4c7;
+    border-left: 4px solid #2271b1;
+    background: #f6f7f7;
+    border-radius: 3px;
+}
+#mi-ai-panel .mi-ai-panel-title {
+    margin: 0 0 .5em;
+    font-weight: 600;
+}
+#mi-ai-question {
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: .5em;
+}
+#mi-ai-answer {
+    margin-top: .75em;
+    white-space: pre-wrap;
+    line-height: 1.5;
+}
+#mi-ai-answer:empty { display: none; }

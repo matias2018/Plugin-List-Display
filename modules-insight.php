@@ -3,8 +3,8 @@ namespace modules_insight;
 /**
  * Plugin Name: Modules Insight
  * Plugin URI: https://aura-plugins.com
- * Description: Audit installed plugins, assess PHP upgrade risk via the WordPress.org API, and export full reports as JSON or CSV. Scan-on-demand — nothing runs automatically.
- * Version: 3.2.2
+ * Description: Audit installed plugins, assess PHP and WordPress upgrade risk via the WordPress.org API, export reports as JSON/CSV or straight to a Google Sheet, and ask AI about the doubtful ones. Scan-on-demand — nothing runs automatically.
+ * Version: 4.0.0
  * Requires at least: 6.0
  * Requires PHP:      8.0
  * Author: Pedro Matias
@@ -20,6 +20,36 @@ if ( ! defined( 'ABSPATH' ) ) {
     die;
 }
 
+define( 'MODULES_INSIGHT_VERSION', '4.0.0' );
+
+/**
+ * Allowed target versions for the risk evaluator, shared by the shortcode,
+ * the export handlers and the Google Sheet / AI endpoints.
+ */
+const MI_ALLOWED_TARGET_PHP = array( '8.0', '8.1', '8.2', '8.3', '8.4', '8.5' );
+const MI_ALLOWED_TARGET_WP  = array( '6.7', '6.8', '7.0', '7.1' );
+const MI_DEFAULT_TARGET_PHP  = '8.3';
+const MI_DEFAULT_TARGET_WP   = '7.1';
+
+require_once __DIR__ . '/includes/settings.php';
+require_once __DIR__ . '/includes/google-sheets.php';
+require_once __DIR__ . '/includes/ai.php';
+
+/**
+ * Reads a POSTed target version, falling back to the default when it is not one
+ * of the allowed values. Caller must have already verified the request nonce.
+ *
+ * @param string $key     POST key to read.
+ * @param array  $allowed Allowed values.
+ * @param string $default Default when the value is missing or invalid.
+ * @return string
+ */
+function mi_sanitize_target( string $key, array $allowed, string $default ): string {
+    // phpcs:ignore WordPress.Security.NonceVerification.Missing -- every caller verifies its own nonce first.
+    $value = isset( $_POST[ $key ] ) ? sanitize_text_field( wp_unslash( $_POST[ $key ] ) ) : '';
+    return in_array( $value, $allowed, true ) ? $value : $default;
+}
+
 /**
  * Registers (but does not enqueue) the plugin's front-end assets.
  * Enqueuing happens inside the shortcode so assets only load on pages that use it.
@@ -27,21 +57,35 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @since 2.9.2
  */
 function modules_insight_register_assets() {
-    wp_register_style( 'modules-insight-style', plugins_url( 'css/modules-insight.css', __FILE__ ), array(), '3.2.0' );
-    wp_register_script( 'modules-insight-script', plugins_url( 'js/modules-insight.js', __FILE__ ), array(), '3.2.0', true );
+    wp_register_style( 'modules-insight-style', plugins_url( 'css/modules-insight.css', __FILE__ ), array(), MODULES_INSIGHT_VERSION );
+    wp_register_script( 'modules-insight-script', plugins_url( 'js/modules-insight.js', __FILE__ ), array(), MODULES_INSIGHT_VERSION, true );
 }
 add_action( 'init', __NAMESPACE__ . '\modules_insight_register_assets' );
+
+/**
+ * Enqueues the plugin assets and hands the script the data it needs.
+ * Safe to call more than once per request.
+ */
+function mi_enqueue_assets() {
+    wp_enqueue_style( 'modules-insight-style' );
+    wp_enqueue_script( 'modules-insight-script' );
+    wp_localize_script( 'modules-insight-script', 'modulesInsight', array(
+        'ajaxUrl'     => admin_url( 'admin-ajax.php' ),
+        'nonce'       => wp_create_nonce( 'modules_insight_compat' ),
+        'aiAvailable' => mi_ai_available(),
+        'settingsUrl' => admin_url( 'options-general.php?page=modules-insight' ),
+        'i18n'        => array(
+            /* translators: 1: plugin name, 2: plugin version, 3: target PHP version, 4: target WordPress version */
+            'aiDefaultQuestion' => __( 'How likely is %1$s %2$s to break when upgrading to PHP %3$s and WordPress %4$s? What should I check?', 'modules-insight' ),
+        ),
+    ) );
+}
 
 function modules_insight_admin_assets( string $hook ) {
     if ( 'index.php' !== $hook || ! current_user_can( 'activate_plugins' ) ) {
         return;
     }
-    wp_enqueue_style( 'modules-insight-style' );
-    wp_enqueue_script( 'modules-insight-script' );
-    wp_localize_script( 'modules-insight-script', 'modulesInsight', array(
-        'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-        'nonce'   => wp_create_nonce( 'modules_insight_compat' ),
-    ) );
+    mi_enqueue_assets();
 }
 add_action( 'admin_enqueue_scripts', __NAMESPACE__ . '\modules_insight_admin_assets' );
 
@@ -149,10 +193,68 @@ add_action( 'switch_theme',              __NAMESPACE__ . '\clear_plugin_insight_
  */
 function mi_wp_version_to_php( string $wp_ver ): float {
     $v = (float) $wp_ver;
+    if ( $v >= 7.1 ) return 8.2;
     if ( $v >= 7.0 ) return 8.0;
     if ( $v >= 6.3 ) return 7.4;
     if ( $v >= 6.0 ) return 7.0;
     return 5.6;
+}
+
+/**
+ * Maps a "major.minor" WordPress version to a monotonic release ordinal
+ * ( major * 10 + minor ), so "releases behind" can be counted across the
+ * 6.x → 7.0 boundary. Relies on the historical rule that the minor number
+ * resets to 0 at a major bump (5.9 → 6.0).
+ *
+ * @param string $ver WordPress version, e.g. "6.8" or "7.1".
+ * @return int Release ordinal, or 0 when unparseable.
+ */
+function mi_wp_release_ordinal( string $ver ): int {
+    if ( ! preg_match( '/^(\d+)\.(\d+)/', trim( $ver ), $m ) ) {
+        return 0;
+    }
+    return (int) $m[1] * 10 + (int) $m[2];
+}
+
+/**
+ * Derives a WordPress upgrade risk level from cached WordPress.org compat data.
+ * Mirrors calcWpRisk() in modules-insight.js. Uses the "Tested up to" value and
+ * the last-updated age — no extra WordPress.org API fields are required.
+ *
+ * @param array  $compat    Transient data for a single plugin slug.
+ * @param string $target_wp Target WordPress version, e.g. "7.1".
+ * @return string 'low' | 'medium' | 'high' | 'not_on_wp_org' | 'unknown'
+ */
+function calculate_wp_compat_risk( array $compat, string $target_wp = MI_DEFAULT_TARGET_WP ): string {
+    if ( ! empty( $compat['not_found'] ) ) {
+        return 'not_on_wp_org';
+    }
+
+    $tested = (string) ( $compat['tested_up_to'] ?? '' );
+    if ( '' === $tested ) {
+        return 'unknown';
+    }
+
+    $behind = mi_wp_release_ordinal( $target_wp ) - mi_wp_release_ordinal( $tested );
+
+    $last_updated = $compat['last_updated'] ?? '';
+    $age_months   = $last_updated
+        ? ( time() - (int) strtotime( $last_updated ) ) / ( 60 * 60 * 24 * 30.44 )
+        : 999;
+
+    if ( $behind <= 0 ) {
+        return 'low';
+    }
+    if ( 1 === $behind && $age_months <= 18 ) {
+        return 'low';
+    }
+    if ( $behind >= 5 || $age_months > 36 ) {
+        return 'high';
+    }
+    if ( $behind <= 2 && $age_months <= 24 ) {
+        return 'medium';
+    }
+    return 'medium';
 }
 
 /**
@@ -184,6 +286,7 @@ function calculate_compat_risk( array $compat, string $target_php = '8.3' ): str
         '8.2' => array( array( 18, 8.0 ), array( 12, 7.4 ) ),
         '8.3' => array( array( 18, 8.0 ), array( 12, 7.4 ) ),
         '8.4' => array( array( 18, 8.1 ), array( 12, 8.0 ) ),
+        '8.5' => array( array( 18, 8.2 ), array( 12, 8.1 ) ),
     );
     $paths = $low_paths[ $target_php ] ?? $low_paths['8.3'];
 
@@ -217,13 +320,17 @@ function calculate_compat_risk( array $compat, string $target_php = '8.3' ): str
  * @param string $slug Plugin directory slug.
  * @return array
  */
-function get_compat_export_data( string $slug, string $target_php = '8.3' ): array {
+function get_compat_export_data( string $slug, string $target_php = MI_DEFAULT_TARGET_PHP, string $target_wp = MI_DEFAULT_TARGET_WP ): array {
     $cached = get_transient( 'mi_compat_' . sanitize_key( $slug ) );
     if ( false === $cached ) {
         return array( 'status' => 'not_checked' );
     }
     if ( ! empty( $cached['not_found'] ) ) {
-        return array( 'status' => 'not_on_wp_org' );
+        return array(
+            'status'  => 'not_on_wp_org',
+            'risk'    => 'not_on_wp_org',
+            'wp_risk' => 'not_on_wp_org',
+        );
     }
     return array(
         'status'        => 'checked',
@@ -231,6 +338,7 @@ function get_compat_export_data( string $slug, string $target_php = '8.3' ): arr
         'tested_up_to'  => $cached['tested_up_to']  ?? '',
         'requires_php'  => $cached['requires_php']  ?? '',
         'risk'          => calculate_compat_risk( $cached, $target_php ),
+        'wp_risk'       => calculate_wp_compat_risk( $cached, $target_wp ),
     );
 }
 
@@ -336,12 +444,7 @@ function plugin_list_shortcode() {
         </form>
 
         <?php if ( $scan_requested ) :
-            wp_enqueue_style( 'modules-insight-style' );
-            wp_enqueue_script( 'modules-insight-script' );
-            wp_localize_script( 'modules-insight-script', 'modulesInsight', array(
-                'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-                'nonce'   => wp_create_nonce( 'modules_insight_compat' ),
-            ) );
+            mi_enqueue_assets();
             $data          = get_plugin_insight_data();
             $active_list   = $data['active'];
             $inactive_list = $data['inactive'];
@@ -461,22 +564,30 @@ function plugin_list_shortcode() {
                 </li>
             </ul>
 
-            <h2><?php esc_html_e( 'PHP Compatibility Check', 'modules-insight' ); ?></h2>
+            <?php
+            $ai_available = mi_ai_available();
+            $gsheet_url   = mi_get_option( 'gsheet_webhook_url' );
+            ?>
+            <h2><?php esc_html_e( 'Upgrade Compatibility Check', 'modules-insight' ); ?></h2>
             <div class="mi-compat-controls hideOnPrint" style="display:flex; align-items:center; gap:.75em; flex-wrap:wrap; margin-bottom:.5em;">
                 <label for="mi-target-php"><?php esc_html_e( 'Target PHP:', 'modules-insight' ); ?></label>
                 <select id="mi-target-php">
-                    <option value="8.0">PHP 8.0</option>
-                    <option value="8.1">PHP 8.1</option>
-                    <option value="8.2">PHP 8.2</option>
-                    <option value="8.3" selected>PHP 8.3</option>
-                    <option value="8.4">PHP 8.4</option>
+                    <?php foreach ( MI_ALLOWED_TARGET_PHP as $v ) : ?>
+                        <option value="<?php echo esc_attr( $v ); ?>" <?php selected( $v, MI_DEFAULT_TARGET_PHP ); ?>>PHP <?php echo esc_html( $v ); ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <label for="mi-target-wp"><?php esc_html_e( 'Target WP:', 'modules-insight' ); ?></label>
+                <select id="mi-target-wp">
+                    <?php foreach ( MI_ALLOWED_TARGET_WP as $v ) : ?>
+                        <option value="<?php echo esc_attr( $v ); ?>" <?php selected( $v, MI_DEFAULT_TARGET_WP ); ?>>WP <?php echo esc_html( $v ); ?></option>
+                    <?php endforeach; ?>
                 </select>
                 <button id="mi-check-compat" class="button button-secondary"
                         data-count="<?php echo (int) $summary['total_plugins']; ?>">
                     <?php
                     printf(
                         /* translators: %d: total number of plugins */
-                        esc_html__( 'Check PHP 8.3 Compatibility (%d plugins)', 'modules-insight' ),
+                        esc_html__( 'Check Upgrade Compatibility (%d plugins)', 'modules-insight' ),
                         (int) $summary['total_plugins']
                     );
                     ?>
@@ -492,47 +603,90 @@ function plugin_list_shortcode() {
                         <th><?php esc_html_e( 'Last Updated', 'modules-insight' ); ?></th>
                         <th><?php esc_html_e( 'Tested up to (WP)', 'modules-insight' ); ?></th>
                         <th><?php esc_html_e( 'Min PHP', 'modules-insight' ); ?></th>
-                        <th id="mi-risk-col-header"><?php esc_html_e( 'Risk for PHP 8.3', 'modules-insight' ); ?></th>
+                        <th id="mi-risk-col-header"><?php
+                            /* translators: %s: target PHP version */
+                            printf( esc_html__( 'Risk for PHP %s', 'modules-insight' ), esc_html( MI_DEFAULT_TARGET_PHP ) );
+                        ?></th>
+                        <th id="mi-wp-risk-col-header"><?php
+                            /* translators: %s: target WordPress version */
+                            printf( esc_html__( 'Risk for WP %s', 'modules-insight' ), esc_html( MI_DEFAULT_TARGET_WP ) );
+                        ?></th>
+                        <?php if ( $ai_available ) : ?>
+                            <th class="mi-ai-col"><?php esc_html_e( 'Ask AI', 'modules-insight' ); ?></th>
+                        <?php endif; ?>
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ( $active_list as $plugin ) : ?>
-                    <tr data-slug="<?php echo esc_attr( explode( '/', $plugin['path'] )[0] ); ?>">
+                    <?php
+                    foreach ( array( 'Active' => $active_list, 'Inactive' => $inactive_list ) as $status_label => $list ) :
+                        foreach ( $list as $plugin ) :
+                            $row_slug = explode( '/', $plugin['path'] )[0];
+                    ?>
+                    <tr data-slug="<?php echo esc_attr( $row_slug ); ?>" data-name="<?php echo esc_attr( $plugin['name'] ); ?>" data-version="<?php echo esc_attr( $plugin['version'] ); ?>">
                         <td><?php echo esc_html( $plugin['name'] ); ?></td>
-                        <td><?php esc_html_e( 'Active', 'modules-insight' ); ?></td>
+                        <td>
+                            <?php
+                            echo 'Active' === $status_label
+                                ? esc_html__( 'Active', 'modules-insight' )
+                                : esc_html__( 'Inactive', 'modules-insight' );
+                            ?>
+                        </td>
                         <td class="mi-last-updated">—</td>
                         <td class="mi-tested-up-to">—</td>
                         <td class="mi-requires-php">—</td>
                         <td class="mi-risk">—</td>
+                        <td class="mi-wp-risk">—</td>
+                        <?php if ( $ai_available ) : ?>
+                            <td class="mi-ai-cell">—</td>
+                        <?php endif; ?>
                     </tr>
-                    <?php endforeach; ?>
-                    <?php foreach ( $inactive_list as $plugin ) : ?>
-                    <tr data-slug="<?php echo esc_attr( explode( '/', $plugin['path'] )[0] ); ?>">
-                        <td><?php echo esc_html( $plugin['name'] ); ?></td>
-                        <td><?php esc_html_e( 'Inactive', 'modules-insight' ); ?></td>
-                        <td class="mi-last-updated">—</td>
-                        <td class="mi-tested-up-to">—</td>
-                        <td class="mi-requires-php">—</td>
-                        <td class="mi-risk">—</td>
-                    </tr>
-                    <?php endforeach; ?>
+                    <?php
+                        endforeach;
+                    endforeach;
+                    ?>
                 </tbody>
             </table>
             </div><!-- .mi-compat-table-wrapper -->
 
-            <div class="mi-download-buttons hideOnPrint" style="display:flex; gap:.5em; margin-top:1em; flex-wrap:wrap;">
+            <?php if ( $ai_available ) : ?>
+                <div id="mi-ai-panel" class="hideOnPrint" hidden>
+                    <p class="mi-ai-panel-title"></p>
+                    <textarea id="mi-ai-question" rows="3"></textarea>
+                    <div>
+                        <button id="mi-ai-ask" class="button button-secondary"><?php esc_html_e( 'Ask', 'modules-insight' ); ?></button>
+                        <button id="mi-ai-close" class="button-link"><?php esc_html_e( 'Close', 'modules-insight' ); ?></button>
+                    </div>
+                    <div id="mi-ai-answer" aria-live="polite"></div>
+                </div>
+            <?php endif; ?>
+
+            <div class="mi-download-buttons hideOnPrint" style="display:flex; gap:.5em; margin-top:1em; flex-wrap:wrap; align-items:center;">
                 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
                     <input type="hidden" name="action" value="download_plugin_list_json">
-                    <input type="hidden" name="mi_target_php" class="mi-target-php-input" value="8.3">
+                    <input type="hidden" name="mi_target_php" class="mi-target-php-input" value="<?php echo esc_attr( MI_DEFAULT_TARGET_PHP ); ?>">
+                    <input type="hidden" name="mi_target_wp" class="mi-target-wp-input" value="<?php echo esc_attr( MI_DEFAULT_TARGET_WP ); ?>">
                     <?php wp_nonce_field( 'download_plugin_list', 'plugin_list_nonce' ); ?>
                     <input type="submit" class="button button-primary" value="<?php esc_attr_e( 'Download List as JSON', 'modules-insight' ); ?>">
                 </form>
                 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
                     <input type="hidden" name="action" value="download_plugin_list_csv">
-                    <input type="hidden" name="mi_target_php" class="mi-target-php-input" value="8.3">
+                    <input type="hidden" name="mi_target_php" class="mi-target-php-input" value="<?php echo esc_attr( MI_DEFAULT_TARGET_PHP ); ?>">
+                    <input type="hidden" name="mi_target_wp" class="mi-target-wp-input" value="<?php echo esc_attr( MI_DEFAULT_TARGET_WP ); ?>">
                     <?php wp_nonce_field( 'download_plugin_list_csv', 'plugin_list_csv_nonce' ); ?>
                     <input type="submit" class="button button-secondary" value="<?php esc_attr_e( 'Download List as CSV', 'modules-insight' ); ?>">
                 </form>
+                <?php if ( $gsheet_url ) : ?>
+                    <button id="mi-push-gsheet" class="button button-secondary"
+                            data-php="<?php echo esc_attr( MI_DEFAULT_TARGET_PHP ); ?>"
+                            data-wp="<?php echo esc_attr( MI_DEFAULT_TARGET_WP ); ?>">
+                        <?php esc_html_e( 'Send report to Google Sheet', 'modules-insight' ); ?>
+                    </button>
+                    <span id="mi-gsheet-status" aria-live="polite"></span>
+                <?php else : ?>
+                    <a href="<?php echo esc_url( admin_url( 'options-general.php?page=modules-insight' ) ); ?>">
+                        <?php esc_html_e( 'Configure Google Sheets export →', 'modules-insight' ); ?>
+                    </a>
+                <?php endif; ?>
             </div>
 
         <?php endif; // $scan_requested ?>
@@ -562,21 +716,18 @@ function download_plugin_list_json() {
         wp_die( esc_html__( 'You do not have sufficient permissions to download this file.', 'modules-insight' ), esc_html__( 'Permission Denied', 'modules-insight' ), array( 'response' => 403 ) );
     }
 
-    $allowed_targets = array( '8.0', '8.1', '8.2', '8.3', '8.4' );
-    $target_php = in_array( $_POST['mi_target_php'] ?? '', $allowed_targets, true )
-        ? sanitize_text_field( wp_unslash( $_POST['mi_target_php'] ) )
-        : '8.3';
+    $target_php = mi_sanitize_target( 'mi_target_php', MI_ALLOWED_TARGET_PHP, MI_DEFAULT_TARGET_PHP );
+    $target_wp  = mi_sanitize_target( 'mi_target_wp', MI_ALLOWED_TARGET_WP, MI_DEFAULT_TARGET_WP );
 
     $data = get_plugin_insight_data();
+    $data['targets'] = array( 'php' => $target_php, 'wp' => $target_wp );
 
-    foreach ( $data['active'] as &$plugin ) {
-        $plugin['compat'] = get_compat_export_data( explode( '/', $plugin['path'] )[0], $target_php );
+    foreach ( array( 'active', 'inactive' ) as $bucket ) {
+        foreach ( $data[ $bucket ] as &$plugin ) {
+            $plugin['compat'] = get_compat_export_data( explode( '/', $plugin['path'] )[0], $target_php, $target_wp );
+        }
+        unset( $plugin );
     }
-    unset( $plugin );
-    foreach ( $data['inactive'] as &$plugin ) {
-        $plugin['compat'] = get_compat_export_data( explode( '/', $plugin['path'] )[0], $target_php );
-    }
-    unset( $plugin );
 
     $filename = 'modules-insight-plugin-list-' . current_time( 'Y-m-d' ) . '.json';
 
@@ -603,64 +754,20 @@ function download_plugin_list_csv() {
         wp_die( esc_html__( 'You do not have sufficient permissions to download this file.', 'modules-insight' ), esc_html__( 'Permission Denied', 'modules-insight' ), array( 'response' => 403 ) );
     }
 
-    $allowed_targets = array( '8.0', '8.1', '8.2', '8.3', '8.4' );
-    $target_php = in_array( $_POST['mi_target_php'] ?? '', $allowed_targets, true )
-        ? sanitize_text_field( wp_unslash( $_POST['mi_target_php'] ) )
-        : '8.3';
+    $target_php = mi_sanitize_target( 'mi_target_php', MI_ALLOWED_TARGET_PHP, MI_DEFAULT_TARGET_PHP );
+    $target_wp  = mi_sanitize_target( 'mi_target_wp', MI_ALLOWED_TARGET_WP, MI_DEFAULT_TARGET_WP );
 
-    $data     = get_plugin_insight_data();
     $filename = 'modules-insight-plugin-list-' . current_time( 'Y-m-d' ) . '.csv';
 
     header( 'Content-Type: text/csv; charset=' . get_option( 'blog_charset' ) );
     header( 'Content-Disposition: attachment; filename="' . sanitize_file_name( $filename ) . '"' );
 
     $output = fopen( 'php://output', 'w' );
-
-    // Site environment block
-    fputcsv( $output, array( 'Site Info' ) );
-    fputcsv( $output, array( 'WordPress Version', $data['site_info']['wp_version'] ) );
-    fputcsv( $output, array( 'Active Theme', $data['site_info']['active_theme']['name'], $data['site_info']['active_theme']['version'], $data['site_info']['active_theme']['author'], $data['site_info']['active_theme']['theme_uri'] ) );
-    fputcsv( $output, array() ); // blank separator row
-
-    fputcsv( $output, array( 'Status', 'Name', 'Version', 'Path', 'Author', 'Plugin URI', 'Author URI', 'Network Active', 'Last Updated (WP.org)', 'Tested up to (WP)', 'Min PHP', 'PHP ' . $target_php . ' Risk' ) );
-
-    foreach ( $data['active'] as $plugin ) {
-        $compat = get_compat_export_data( explode( '/', $plugin['path'] )[0], $target_php );
-        fputcsv( $output, array(
-            'Active',
-            $plugin['name'],
-            $plugin['version'],
-            $plugin['path'],
-            $plugin['author'],
-            $plugin['plugin_uri'],
-            $plugin['author_uri'],
-            $plugin['network'] ? 'Yes' : 'No',
-            $compat['last_updated']  ?? $compat['status'],
-            $compat['tested_up_to']  ?? '',
-            $compat['requires_php']  ?? '',
-            $compat['risk']          ?? $compat['status'],
-        ) );
+    foreach ( mi_build_report_rows( $target_php, $target_wp ) as $row ) {
+        fputcsv( $output, $row, ',', '"', '' );
     }
-
-    foreach ( $data['inactive'] as $plugin ) {
-        $compat = get_compat_export_data( explode( '/', $plugin['path'] )[0], $target_php );
-        fputcsv( $output, array(
-            'Inactive',
-            $plugin['name'],
-            $plugin['version'],
-            $plugin['path'],
-            $plugin['author'],
-            $plugin['plugin_uri'],
-            $plugin['author_uri'],
-            'No',
-            $compat['last_updated']  ?? $compat['status'],
-            $compat['tested_up_to']  ?? '',
-            $compat['requires_php']  ?? '',
-            $compat['risk']          ?? $compat['status'],
-        ) );
-    }
-
-    fclose( $output );
+    // No fclose(): php://output is a write-through wrapper to the SAPI and is
+    // released on exit; closing it explicitly trips Plugin Check's filesystem sniff.
     exit;
 }
 add_action( 'admin_post_download_plugin_list_csv', __NAMESPACE__ . '\download_plugin_list_csv' );

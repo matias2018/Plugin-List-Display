@@ -5,6 +5,14 @@
 /.gitignore
 /.distignore
 
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
 /README.md
 /CHANGELOG.md
 /plugin-export-to-svn-flow.md

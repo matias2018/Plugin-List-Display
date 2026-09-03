@@ -2,17 +2,24 @@
 Contributors: Pedro Matias
 Tags: plugin management, plugin report, admin tools, plugin status, developer tools
 Requires at least: 6.0
-Tested up to: 7.0
+Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 3.2.2
+Stable tag: 4.0.0
 License: GPL-2.0-or-later
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
-Audit installed plugins, assess PHP upgrade risk via the WordPress.org API, and export full reports as JSON or CSV.
+Audit plugins, rate PHP and WordPress upgrade risk from the WordPress.org API, and export to JSON, CSV, or a Google Sheet.
 
 == Description ==
 
-**Modules Insight** helps WordPress developers and site managers audit installed plugins, assess the risk of upgrading PHP, and export complete reports — all from a single on-demand scan.
+**Modules Insight** helps WordPress developers and site managers audit installed plugins, assess the risk of upgrading **PHP and WordPress**, and export complete reports — all from a single on-demand scan.
+
+=== What's new in 4.0 ===
+
+* **WordPress upgrade risk** — a second risk column alongside PHP, rated against a target WordPress version you choose (up to 7.1).
+* **PHP 8.5** added to the target-PHP selector.
+* **Send to Google Sheet** — push the report straight into a spreadsheet via a Google Apps Script Web App you deploy once (no Google API keys stored in WordPress).
+* **Ask AI** — for plugins the metadata can't settle (Medium / High / Not on WP.org), ask a question and get an answer from the WordPress core AI Client. Requires WordPress 7.0+ with an AI provider configured under Settings → AI; the feature hides itself otherwise.
 
 === PHP Upgrade Risk Evaluator ===
 
@@ -38,26 +45,40 @@ Results from the WordPress.org API are cached per plugin for 24 hours to avoid u
 
 MI lists all installed plugins (active, inactive, and network-active on multisite) with version numbers, author details, and descriptions. It also reports the active WordPress version and active theme.
 
-Reports can be exported as `.json` or `.csv`. Both formats include the PHP compatibility data if a check has been run prior to export.
+Reports can be exported as `.json`, `.csv`, or sent to a Google Sheet. All include the PHP and WordPress compatibility data if a check has been run prior to export.
 
-Tested and fully compatible with **WordPress 7.0**.
+Tested and fully compatible with **WordPress 7.1**.
+
+=== WordPress Upgrade Risk Evaluator ===
+
+The same check now rates each plugin against a target **WordPress** version too (selectable, up to 7.1). The signal is the plugin's "Tested up to" value on WordPress.org combined with how recently it was updated: a plugin tested at or beyond your target is **Low**, one release behind and freshly updated is **Low**, several releases behind or long-stale is **High**. As with the PHP rating, this is a metadata signal, not a code scan — always test on staging.
 
 === Key Features ===
 
-* PHP upgrade risk evaluation via the WordPress.org API
-* Colour-coded risk table: Low / Medium / High / Not on WP.org
+* PHP **and** WordPress upgrade risk evaluation via the WordPress.org API
+* Two colour-coded risk columns: Low / Medium / High / Not on WP.org
+* Selectable targets: PHP 8.0–8.5, WordPress 6.7–7.1
 * Lists all installed plugins with status, version, author, and URIs
 * Reports WordPress version and active theme
-* Export as JSON or CSV (includes compat data when available)
+* Export as JSON, CSV, or straight to a Google Sheet (includes compat data when available)
+* Ask AI about a specific plugin using the WordPress core AI Client (WordPress 7.0+, optional)
 * Dashboard widget and `[plugin_list]` shortcode
 * Scan-on-demand — nothing runs automatically on page load
-* 100% read-only — safe for production use
+* Read-only against your site — the only writes are the report rows you send to your own Google Sheet
+
+=== External services ===
+
+Modules Insight makes outbound requests only when an administrator asks it to:
+
+* **WordPress.org plugin API** (api.wordpress.org) — during a compatibility check, to read each plugin's last-updated date, "tested up to" and "requires PHP" values. Cached per plugin for 24 hours.
+* **Your Google Apps Script Web App** — only if you configure the Google Sheets export, and only when you press *Send report to Google Sheet*. The plugin POSTs the report rows plus your shared secret token to the URL you provide.
+* **Your site's AI provider** — only if you use *Ask AI*. The request goes through the WordPress core AI Client to whichever provider your site admin configured under Settings → AI. The plugin name, version, description, its WordPress.org metadata, your risk ratings and (if present) the plugin's own readme.txt are sent as context.
 
 === Use Cases ===
 
-* Assessing risk before upgrading PHP on a server
+* Assessing risk before upgrading PHP or WordPress on a server
 * Managing multiple WordPress sites and keeping plugins audited
-* Client-facing reports on installed plugins
+* Client-facing reports on installed plugins, collected in a shared Google Sheet
 * Pre-deployment or pre-update plugin audits
 
 == Installation ==
@@ -66,8 +87,9 @@ Tested and fully compatible with **WordPress 7.0**.
 2. Activate the plugin through the Plugins menu in WordPress.
 3. Check your **Dashboard** for the "Modules Insight - Plugin List" widget, or use the shortcode `[plugin_list]` on any page or post.
 4. Press **Scan Plugins** to load the plugin list.
-5. Press **Check PHP 8.3 Compatibility** to run the risk evaluation against the WordPress.org API.
-6. Once the scan is complete, press **Download List as JSON** or **Download List as CSV** to export the full report, including the compatibility data.
+5. Pick your **Target PHP** and **Target WP** versions, then press **Check Upgrade Compatibility** to run the risk evaluation against the WordPress.org API.
+6. Once the scan is complete, press **Download List as JSON**, **Download List as CSV**, or **Send report to Google Sheet** to export the full report, including the compatibility data.
+7. Optionally, set up the Google Sheets export and (on WordPress 7.0+) the AI Q&A under **Settings → Modules Insight**.
 
 == Frequently Asked Questions ==
 
@@ -101,19 +123,27 @@ No. They are a triage guide based on publicly available metadata. A Low-rated pl
 
 = Does this plugin make any changes to my site? =
 
-No. MI is completely read-only. It does not activate, deactivate, install, or delete any plugins.
+No. MI does not activate, deactivate, install, or delete any plugins, and it never modifies your site's data. The only write it performs anywhere is appending report rows to a Google Sheet you configure — and only when you press *Send report to Google Sheet*.
+
+= How does the Google Sheets export work? Do I need a Google Cloud account? =
+
+No Google Cloud project, no API keys. You create a normal Google Sheet, add a short Google Apps Script (provided on the settings page) and deploy it as a Web App. You then paste that Web App URL and a shared secret token into **Settings → Modules Insight**. The plugin POSTs the report to your script, which appends the rows. The token is stored in your database (or a `wp-config.php` constant) and is never shown again after saving.
+
+= What does "Ask AI" need? =
+
+WordPress 7.0 or newer (the AI Client ships in core from 7.0), with an AI provider (Anthropic, Google, or OpenAI) configured by an administrator in your site's AI settings. Modules Insight uses the core AI Client — it stores no API keys of its own. If no provider can serve a request, the "Ask AI" button doesn't appear and the settings page explains why. If the "Connector Approvals" experiment is enabled, an administrator must approve Modules Insight after its first request. Answers are cached for 12 hours per question to limit provider costs.
 
 = Who can see the plugin list and run the compatibility check? =
 
-Only users with the `activate_plugins` capability (typically Administrators).
+Only users with the `activate_plugins` capability (typically Administrators). The settings page requires `manage_options`.
 
 = What formats can I export? =
 
-JSON and CSV. Both include the PHP compatibility data (last updated, minimum PHP, risk level) for any plugin that has been checked. Plugins not yet checked show `not_checked` in those fields.
+JSON, CSV, or a Google Sheet. All include the PHP and WordPress compatibility data (last updated, "tested up to", minimum PHP, both risk levels) for any plugin that has been checked. Plugins not yet checked show `not_checked` in those fields.
 
 = Can I use this on a live/production site? =
 
-Yes. MI performs no write operations and loads no assets unless an admin explicitly presses Scan.
+Yes. MI loads no assets unless an admin explicitly presses Scan, and makes no outbound requests except the admin-initiated ones listed under "External services" above.
 
 == Screenshots ==
 
@@ -123,6 +153,18 @@ Yes. MI performs no write operations and loads no assets unless an admin explici
 4. Example of "print" page using shortcode and automatic expanded description view using `<details>`.
 
 == Changelog ==
+
+= 4.0.0 =
+* Feature: WordPress upgrade risk — a second risk column, rated against a selectable target WordPress version (6.7–7.1), derived from each plugin's "Tested up to" value and last-updated age.
+* Feature: PHP 8.5 added to the target-PHP selector.
+* Feature: Send report to Google Sheet — push the full report into a spreadsheet via a Google Apps Script Web App you deploy once. No Google API keys are stored in WordPress. Configured under Settings → Modules Insight.
+* Feature: Ask AI — for plugins rated Medium / High / Not on WP.org, ask a free-text question and get an answer from the WordPress core AI Client (WordPress 7.0+ with a provider configured under Settings → AI). Answers cached 12 hours.
+* Change: The compatibility check now covers both PHP and WordPress in one pass; the button is relabelled "Check Upgrade Compatibility".
+* Change: JSON and CSV exports gain the WordPress risk column and record both selected targets. CSV cell values starting with = + - @ are now prefixed to prevent spreadsheet formula injection.
+* Change: Asset cache-busting is tied to the plugin version again (was pinned at 3.2.0).
+* Fix: Translation files renamed from `modules_insight-*` to `modules-insight-*` so WordPress actually loads them (the text domain is `modules-insight`).
+* Fix: Compatible with WordPress 7.1; README requirements corrected to WordPress 6.0 / PHP 8.0.
+* Dev: Code split into `includes/` (settings, google-sheets, ai).
 
 = 3.2.2 =
 * Fix: Compat table no longer overflows the dashboard widget — wrapped in a horizontally scrollable container.
@@ -256,6 +298,9 @@ Yes. MI performs no write operations and loads no assets unless an admin explici
 * (Internal/Previous Version) Initial concept release.
 
 == Upgrade Notice ==
+
+= 4.0.0 =
+Adds WordPress upgrade risk alongside PHP (targets up to WP 7.1 / PHP 8.5), Google Sheets export, and optional AI Q&A via the WordPress core AI Client. Existing scans and exports keep working; the new outbound integrations are off until you configure them.
 
 = 2.1.2 =
 This version fixes a date function usage to correctly respect your WordPress timezone settings for the exported JSON filename.
