@@ -1,0 +1,12 @@
+{
+  "name": "modules-insight-build",
+  "private": true,
+  "description": "Build tooling for the Modules Insight WordPress plugin.",
+  "scripts": {
+    "build": "node build.js",
+    "build:minor": "node build.js --minor",
+    "build:major": "node build.js --major",
+    "build:same": "node build.js --no-bump"
+  },
+  "license": "GPL-2.0-or-later"
+}

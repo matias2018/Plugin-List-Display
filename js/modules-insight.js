@@ -81,14 +81,19 @@ window.matchMedia("print").addEventListener("change", function (evt) {
 
         let done = 0;
 
+        let failed = 0;
+
         for (const row of rows) {
             const slug = row.dataset.slug;
             const name = row.dataset.name || row.cells[0].textContent.trim();
 
             progress.textContent = "Checking " + (done + 1) + " / " + rows.length + " — " + name;
-            setRowPending(row);
 
+            // A throw anywhere in here (bad response, unexpected DOM) must only
+            // fail this one row — never abort the remaining plugins.
             try {
+                setRowPending(row);
+
                 const body = new FormData();
                 body.append("action", "modules_insight_check_compat");
                 body.append("nonce",  modulesInsight.nonce);
@@ -97,20 +102,25 @@ window.matchMedia("print").addEventListener("change", function (evt) {
                 const res  = await fetch(modulesInsight.ajaxUrl, { method: "POST", body: body });
                 const json = await res.json();
 
-                if (json.success) {
+                if (json && json.success) {
                     applyResult(row, json.data, t);
                 } else {
                     setRowError(row);
+                    failed++;
                 }
-            } catch (_) {
-                setRowError(row);
+            } catch (err) {
+                try { setRowError(row); } catch (_) { /* row DOM is unusable */ }
+                failed++;
+                if (window.console) console.warn("Modules Insight: compat check failed for " + slug, err);
             }
 
             done++;
             await new Promise(function (r) { setTimeout(r, 150); });
         }
 
-        progress.textContent = "Done — " + rows.length + " plugins checked.";
+        progress.textContent = failed
+            ? "Done — " + (rows.length - failed) + " of " + rows.length + " checked, " + failed + " failed."
+            : "Done — " + rows.length + " plugins checked.";
         btn.textContent      = "Re-check compatibility";
         btn.disabled         = false;
     }
@@ -156,58 +166,42 @@ window.matchMedia("print").addEventListener("change", function (evt) {
         };
     }
 
-    function setRowPending(row) {
+    // Cell writers tolerate a missing <td> (e.g. a stale template that predates
+    // a column) so one absent cell never aborts the whole check loop.
+    function cellText(el, text) { if (el) el.textContent = text; }
+    function cellClass(el, name) { if (el) el.className = name; }
+
+    // updatedText goes in the "Last Updated" cell; the rest share restText.
+    function fillRow(row, updatedText, restText, aiText) {
         const c = riskCells(row);
-        c.updated.textContent = "…";
-        c.tested.textContent  = "…";
-        c.php.textContent     = "…";
-        c.risk.textContent    = "…";
-        c.wpRisk.textContent  = "…";
-        c.risk.className      = "mi-risk";
-        c.wpRisk.className     = "mi-risk";
-        if (c.ai) c.ai.textContent = "";
+        cellText(c.updated, updatedText);
+        cellText(c.tested, restText);
+        cellText(c.php, restText);
+        cellText(c.risk, restText);
+        cellText(c.wpRisk, restText);
+        cellClass(c.risk, "mi-risk");
+        cellClass(c.wpRisk, "mi-risk");
+        cellText(c.ai, aiText);
         row.className = "";
     }
 
-    function setRowReset(row) {
-        const c = riskCells(row);
-        c.updated.textContent = "—";
-        c.tested.textContent  = "—";
-        c.php.textContent     = "—";
-        c.risk.textContent    = "—";
-        c.wpRisk.textContent  = "—";
-        c.risk.className      = "mi-risk";
-        c.wpRisk.className     = "mi-risk";
-        if (c.ai) c.ai.textContent = "—";
-        row.className = "";
-    }
-
-    function setRowError(row) {
-        const c = riskCells(row);
-        c.updated.textContent = "Error";
-        c.tested.textContent  = "—";
-        c.php.textContent     = "—";
-        c.risk.textContent    = "—";
-        c.wpRisk.textContent  = "—";
-        c.risk.className      = "mi-risk";
-        c.wpRisk.className     = "mi-risk";
-        if (c.ai) c.ai.textContent = "—";
-        row.className = "";
-    }
+    function setRowPending(row) { fillRow(row, "…", "…", ""); }
+    function setRowReset(row)   { fillRow(row, "—", "—", "—"); }
+    function setRowError(row)   { fillRow(row, "Error", "—", "—"); }
 
     function applyResult(row, data, t) {
         const c = riskCells(row);
-        c.updated.textContent = data.last_updated || "—";
-        c.tested.textContent  = data.tested_up_to ? "WP " + data.tested_up_to : "—";
-        c.php.textContent     = data.requires_php ? "PHP " + data.requires_php : "Not set";
+        cellText(c.updated, data.last_updated || "—");
+        cellText(c.tested, data.tested_up_to ? "WP " + data.tested_up_to : "—");
+        cellText(c.php, data.requires_php ? "PHP " + data.requires_php : "Not set");
 
         const php = calcRisk(data, t.php);
         const wp  = calcWpRisk(data, t.wp);
 
-        c.risk.textContent = php.label;
-        c.risk.className   = "mi-risk mi-risk-" + php.level;
-        c.wpRisk.textContent = wp.label;
-        c.wpRisk.className   = "mi-risk mi-risk-" + wp.level;
+        cellText(c.risk, php.label);
+        cellClass(c.risk, "mi-risk mi-risk-" + php.level);
+        cellText(c.wpRisk, wp.label);
+        cellClass(c.wpRisk, "mi-risk mi-risk-" + wp.level);
 
         const worst = RISK_RANK[php.level] >= RISK_RANK[wp.level] ? php.level : wp.level;
         row.className = "mi-row-" + worst;
@@ -308,12 +302,36 @@ window.matchMedia("print").addEventListener("change", function (evt) {
 
     /* ---- Google Sheet push ---- */
 
+    // True once a compat check has populated the table this session. Used to
+    // warn before pushing an all-"not_checked" report to the Google Sheet.
+    function compatChecked() {
+        const table = $("mi-compat-table");
+        if (!table || table.style.display === "none") return false;
+        return Array.from(table.querySelectorAll(".mi-risk")).some(function (c) {
+            const t = c.textContent.trim();
+            return t !== "" && t !== "—" && t !== "…";
+        });
+    }
+
     function initGsheet() {
         const push = $("mi-push-gsheet");
         if (!push) return;
 
         push.addEventListener("click", async function () {
             const status = $("mi-gsheet-status");
+
+            // The report exports whatever compat data is cached. If the check
+            // has not been run this session, the risk columns will all read
+            // "not_checked" — warn before sending a half-empty report.
+            if (!compatChecked() && !window.confirm(
+                "Upgrade compatibility has not been checked yet, so the report's " +
+                "\"Last Updated\", \"Tested up to\", \"Min PHP\" and both Risk columns " +
+                "will read \"not_checked\".\n\nRun \"Check Upgrade Compatibility\" first, " +
+                "or send the report as-is?"
+            )) {
+                return;
+            }
+
             push.disabled = true;
             if (status) status.textContent = "Sending…";
 

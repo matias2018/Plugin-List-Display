@@ -49,7 +49,7 @@ function mi_build_report_rows( string $target_php, string $target_wp ): array {
     $rows[] = array( 'WordPress version', $data['site_info']['wp_version'] );
     $rows[] = array_map( __NAMESPACE__ . '\mi_cell_safe', array( 'Active theme', $theme['name'], $theme['version'], $theme['author'], $theme['theme_uri'] ) );
     $rows[] = array( 'Target PHP', $target_php, 'Target WP', $target_wp );
-    $rows[] = array();
+    $rows[] = array( '' ); // Spacer. Not array() — Apps Script's appendRow() rejects an empty array.
 
     $rows[] = array(
         'Status', 'Name', 'Version', 'Path', 'Author', 'Plugin URI', 'Author URI',
@@ -96,9 +96,14 @@ function mi_send_to_gsheet( array $rows ) {
     }
 
     $response = wp_remote_post( $url, array(
-        'timeout' => 20,
-        'headers' => array( 'Content-Type' => 'application/json' ),
-        'body'    => wp_json_encode( array(
+        'timeout'     => 20,
+        // Apps Script answers with a 302 to script.googleusercontent.com, and
+        // that endpoint only accepts GET/HEAD. WordPress's HTTP client re-issues
+        // a 302 as another POST, which is rejected (405) and the JSON body is
+        // lost. Stop at the redirect and fetch the destination ourselves below.
+        'redirection' => 0,
+        'headers'     => array( 'Content-Type' => 'application/json' ),
+        'body'        => wp_json_encode( array(
             'token'     => $token,
             'mode'      => mi_get_option( 'gsheet_mode', 'append' ),
             'generated' => current_time( 'mysql' ),
@@ -111,7 +116,20 @@ function mi_send_to_gsheet( array $rows ) {
         return $response;
     }
 
-    $code = wp_remote_retrieve_response_code( $response );
+    $code = (int) wp_remote_retrieve_response_code( $response );
+
+    for ( $hop = 0; $hop < 3 && $code >= 300 && $code < 400; $hop++ ) {
+        $location = wp_remote_retrieve_header( $response, 'location' );
+        if ( ! $location ) {
+            return new \WP_Error( 'mi_gsheet_failed', __( 'The Google Sheet redirected without a destination.', 'modules-insight' ) );
+        }
+        $response = wp_remote_get( $location, array( 'timeout' => 20, 'redirection' => 0 ) );
+        if ( is_wp_error( $response ) ) {
+            return $response;
+        }
+        $code = (int) wp_remote_retrieve_response_code( $response );
+    }
+
     $body = json_decode( wp_remote_retrieve_body( $response ), true );
 
     if ( 200 !== (int) $code || ! is_array( $body ) || empty( $body['ok'] ) ) {
@@ -184,7 +202,7 @@ function doPost(e) {
   if (data.mode === 'overwrite') {
     sheet.clearContents();
   }
-  (data.rows || []).forEach(row => sheet.appendRow(row));
+  (data.rows || []).forEach(row => sheet.appendRow(row.length ? row : ['']));
 
   return out({ ok: true, written: (data.rows || []).length });
 }

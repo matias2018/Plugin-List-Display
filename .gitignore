@@ -8,6 +8,7 @@ yarn-error.log*
 assets/css/
 assets/js/
 build/
+dist/
 
 # OS generated files
 .DS_Store

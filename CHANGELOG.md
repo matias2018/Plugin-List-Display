@@ -2,6 +2,19 @@
 
 All notable changes to Modules Insight are documented in this file.
 
+## [4.0.2] - 2026-09-04
+
+### Fixed
+- **Google Sheet export failed with "The Google Sheet rejected the request: HTTP 200".** The Apps Script Web App answers with a `302` to `script.googleusercontent.com/macros/echo`, which only accepts `GET`; WordPress's HTTP client re-issued the redirect as a `POST` (405) and never received the JSON reply. `mi_send_to_gsheet()` now sends with `redirection => 0`, then follows the `Location` with `wp_remote_get()` (up to 3 hops). `includes/google-sheets.php`.
+- **Report spacer row.** `mi_build_report_rows()` emitted an empty `array()`; Apps Script's `appendRow([])` throws, which could fail the whole push. Now `array( '' )`, and `mi_apps_script_source()` guards `appendRow` too.
+- **A single failed plugin lookup aborted the whole compatibility check.** `runCheck()` now isolates each plugin in its own try/catch, keeps going after a failure, and reports the count (`"Done — 19 of 22 checked, 3 failed."`). The row writers (`fillRow()`, `applyResult()`) tolerate a missing `<td>` via `cellText()`/`cellClass()` instead of throwing. `js/modules-insight.js`.
+
+### Changed
+- **Send report to Google Sheet** asks for confirmation when no compatibility check has run this session, so the report's risk columns don't all silently export as `not_checked`.
+
+### Dev
+- `build.js` + `package.json` — `npm run build` bumps the version (patch by default; `--minor`/`--major`/`--set`/`--no-bump`), syncs it across the plugin header, `MODULES_INSIGHT_VERSION` and `readme.txt`, and produces a `.distignore`-filtered test zip in `dist/`.
+
 ## [4.0.0] - 2026-09-03
 
 ### Added

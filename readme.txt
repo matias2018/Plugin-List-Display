@@ -4,7 +4,7 @@ Tags: plugin management, plugin report, admin tools, plugin status, developer to
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 4.0.0
+Stable tag: 4.0.2
 License: GPL-2.0-or-later
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
@@ -154,6 +154,12 @@ Yes. MI loads no assets unless an admin explicitly presses Scan, and makes no ou
 
 == Changelog ==
 
+= 4.0.2 =
+* Fix: "Send report to Google Sheet" failed with "The Google Sheet rejected the request: HTTP 200". The Apps Script Web App replies with a 302 to script.googleusercontent.com, an endpoint that only accepts GET; WordPress re-issued the redirect as POST and never received the JSON reply. The plugin now follows the redirect with a GET.
+* Fix: The report's spacer row is no longer an empty array — Apps Script's appendRow() rejects one, which could fail the whole push. The bundled Apps Script also guards against it.
+* Change: "Send report to Google Sheet" now warns when upgrade compatibility has not been checked yet, so you don't push a report whose risk columns all read "not_checked".
+* Fix: A single failed plugin lookup during "Check Upgrade Compatibility" no longer aborts the whole run — the remaining plugins are still checked and the progress line reports how many failed. Row updates also tolerate an unexpected table layout instead of throwing.
+
 = 4.0.0 =
 * Feature: WordPress upgrade risk — a second risk column, rated against a selectable target WordPress version (6.7–7.1), derived from each plugin's "Tested up to" value and last-updated age.
 * Feature: PHP 8.5 added to the target-PHP selector.
@@ -298,6 +304,9 @@ Yes. MI loads no assets unless an admin explicitly presses Scan, and makes no ou
 * (Internal/Previous Version) Initial concept release.
 
 == Upgrade Notice ==
+
+= 4.0.2 =
+Fixes "Send report to Google Sheet" failing with "HTTP 200" — the plugin now follows the Apps Script redirect correctly. No reconfiguration needed.
 
 = 4.0.0 =
 Adds WordPress upgrade risk alongside PHP (targets up to WP 7.1 / PHP 8.5), Google Sheets export, and optional AI Q&A via the WordPress core AI Client. Existing scans and exports keep working; the new outbound integrations are off until you configure them.

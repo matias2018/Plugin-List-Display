@@ -17,6 +17,9 @@ Thumbs.db
 /CHANGELOG.md
 /plugin-export-to-svn-flow.md
 /plugin-list-display.txt
+/build.js
+/package.json
+/package-lock.json
 
 /design
 /assets
@@ -29,3 +32,4 @@ Thumbs.db
 /tests
 /tmp
 /temp
+/dist

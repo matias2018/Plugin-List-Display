@@ -4,7 +4,7 @@ namespace modules_insight;
  * Plugin Name: Modules Insight
  * Plugin URI: https://aura-plugins.com
  * Description: Audit installed plugins, assess PHP and WordPress upgrade risk via the WordPress.org API, export reports as JSON/CSV or straight to a Google Sheet, and ask AI about the doubtful ones. Scan-on-demand — nothing runs automatically.
- * Version: 4.0.0
+ * Version: 4.0.2
  * Requires at least: 6.0
  * Requires PHP:      8.0
  * Author: Pedro Matias
@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     die;
 }
 
-define( 'MODULES_INSIGHT_VERSION', '4.0.0' );
+define( 'MODULES_INSIGHT_VERSION', '4.0.2' );
 
 /**
  * Allowed target versions for the risk evaluator, shared by the shortcode,
