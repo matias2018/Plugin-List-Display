@@ -2,6 +2,14 @@
 
 All notable changes to Modules Insight are documented in this file.
 
+## [4.0.4] - 2026-09-10
+
+### Added
+- **Native Excel export** — a fourth export, `Download List as Excel (for SharePoint)`, alongside JSON / CSV / Google Sheet. New `includes/xlsx.php` builds a valid `.xlsx` (a ZIP of Office Open XML parts) in memory with a small store-only ZIP packer — no PhpSpreadsheet, no `zip` extension, no temp file. Every cell is an inline string, so columns and UTF-8 survive Excel Online / SharePoint intact and spreadsheet formula injection is structurally impossible (an inline string is never evaluated). `mi_build_report_rows()` gains a `$formula_safe` parameter — `true` (default) for CSV and Google Sheets, `false` for XLSX. `download_plugin_list_xlsx()` on `admin_post_download_plugin_list_xlsx`.
+
+### Fixed
+- CSV export now emits a UTF-8 BOM and a fixed `charset=UTF-8` header, so Excel stops reading it in the machine's legacy code page and mangling accented author names once the download drops its `Content-Type` header (`Pär Thernström` → `PÃ¤r ThernstrÃ¶m`).
+
 ## [4.0.2] - 2026-09-04
 
 ### Fixed

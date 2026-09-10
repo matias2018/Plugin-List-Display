@@ -3,8 +3,8 @@ namespace modules_insight;
 /**
  * Plugin Name: Modules Insight
  * Plugin URI: https://aura-plugins.com
- * Description: Audit installed plugins, assess PHP and WordPress upgrade risk via the WordPress.org API, export reports as JSON/CSV or straight to a Google Sheet, and ask AI about the doubtful ones. Scan-on-demand — nothing runs automatically.
- * Version: 4.0.2
+ * Description: Audit installed plugins, assess PHP and WordPress upgrade risk via the WordPress.org API, export reports as JSON/CSV/Excel or straight to a Google Sheet, and ask AI about the doubtful ones. Scan-on-demand — nothing runs automatically.
+ * Version: 4.0.4
  * Requires at least: 6.0
  * Requires PHP:      8.0
  * Author: Pedro Matias
@@ -20,7 +20,7 @@ if ( ! defined( 'ABSPATH' ) ) {
     die;
 }
 
-define( 'MODULES_INSIGHT_VERSION', '4.0.2' );
+define( 'MODULES_INSIGHT_VERSION', '4.0.4' );
 
 /**
  * Allowed target versions for the risk evaluator, shared by the shortcode,
@@ -33,6 +33,7 @@ const MI_DEFAULT_TARGET_WP   = '7.1';
 
 require_once __DIR__ . '/includes/settings.php';
 require_once __DIR__ . '/includes/google-sheets.php';
+require_once __DIR__ . '/includes/xlsx.php';
 require_once __DIR__ . '/includes/ai.php';
 
 /**
@@ -675,6 +676,13 @@ function plugin_list_shortcode() {
                     <?php wp_nonce_field( 'download_plugin_list_csv', 'plugin_list_csv_nonce' ); ?>
                     <input type="submit" class="button button-secondary" value="<?php esc_attr_e( 'Download List as CSV', 'modules-insight' ); ?>">
                 </form>
+                <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+                    <input type="hidden" name="action" value="download_plugin_list_xlsx">
+                    <input type="hidden" name="mi_target_php" class="mi-target-php-input" value="<?php echo esc_attr( MI_DEFAULT_TARGET_PHP ); ?>">
+                    <input type="hidden" name="mi_target_wp" class="mi-target-wp-input" value="<?php echo esc_attr( MI_DEFAULT_TARGET_WP ); ?>">
+                    <?php wp_nonce_field( 'download_plugin_list_xlsx', 'plugin_list_xlsx_nonce' ); ?>
+                    <input type="submit" class="button button-secondary" value="<?php esc_attr_e( 'Download List as Excel (for SharePoint)', 'modules-insight' ); ?>">
+                </form>
                 <?php if ( $gsheet_url ) : ?>
                     <button id="mi-push-gsheet" class="button button-secondary"
                             data-php="<?php echo esc_attr( MI_DEFAULT_TARGET_PHP ); ?>"
@@ -759,10 +767,13 @@ function download_plugin_list_csv() {
 
     $filename = 'modules-insight-plugin-list-' . current_time( 'Y-m-d' ) . '.csv';
 
-    header( 'Content-Type: text/csv; charset=' . get_option( 'blog_charset' ) );
+    header( 'Content-Type: text/csv; charset=UTF-8' );
     header( 'Content-Disposition: attachment; filename="' . sanitize_file_name( $filename ) . '"' );
 
     $output = fopen( 'php://output', 'w' );
+    // UTF-8 BOM: without it Excel reads the file in the machine's legacy code
+    // page and mangles accented names once the download loses its charset header.
+    fwrite( $output, "\xEF\xBB\xBF" );
     foreach ( mi_build_report_rows( $target_php, $target_wp ) as $row ) {
         fputcsv( $output, $row, ',', '"', '' );
     }
@@ -771,6 +782,36 @@ function download_plugin_list_csv() {
     exit;
 }
 add_action( 'admin_post_download_plugin_list_csv', __NAMESPACE__ . '\download_plugin_list_csv' );
+
+
+/**
+ * Handles the download request for the plugin list as a native Excel .xlsx file.
+ * Preferred for Excel Online / SharePoint, where CSV delimiter and encoding
+ * detection is unreliable.
+ */
+function download_plugin_list_xlsx() {
+    if ( ! isset( $_POST['plugin_list_xlsx_nonce'] ) || ! wp_verify_nonce( sanitize_key( $_POST['plugin_list_xlsx_nonce'] ), 'download_plugin_list_xlsx' ) ) {
+        wp_die( esc_html__( 'Invalid security token.', 'modules-insight' ), esc_html__( 'Nonce Error', 'modules-insight' ), array( 'response' => 403 ) );
+    }
+
+    if ( ! current_user_can( 'activate_plugins' ) ) {
+        wp_die( esc_html__( 'You do not have sufficient permissions to download this file.', 'modules-insight' ), esc_html__( 'Permission Denied', 'modules-insight' ), array( 'response' => 403 ) );
+    }
+
+    $target_php = mi_sanitize_target( 'mi_target_php', MI_ALLOWED_TARGET_PHP, MI_DEFAULT_TARGET_PHP );
+    $target_wp  = mi_sanitize_target( 'mi_target_wp', MI_ALLOWED_TARGET_WP, MI_DEFAULT_TARGET_WP );
+
+    $xlsx     = mi_build_xlsx_document( mi_build_report_rows( $target_php, $target_wp, false ) );
+    $filename = 'modules-insight-plugin-list-' . current_time( 'Y-m-d' ) . '.xlsx';
+
+    header( 'Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' );
+    header( 'Content-Disposition: attachment; filename="' . sanitize_file_name( $filename ) . '"' );
+    header( 'Content-Length: ' . strlen( $xlsx ) );
+
+    echo $xlsx; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- binary XLSX payload, not HTML.
+    exit;
+}
+add_action( 'admin_post_download_plugin_list_xlsx', __NAMESPACE__ . '\download_plugin_list_xlsx' );
 
 
 /**

@@ -33,21 +33,29 @@ function mi_cell_safe( $value ): string {
 }
 
 /**
- * Builds the full report as a list of flat, formula-safe rows. Shared by the CSV
- * download and the Google Sheet push so both stay identical.
+ * Builds the full report as a list of flat rows. Shared by the CSV download, the
+ * XLSX download and the Google Sheet push so every export stays identical.
  *
- * @param string $target_php Target PHP version.
- * @param string $target_wp  Target WordPress version.
+ * @param string $target_php   Target PHP version.
+ * @param string $target_wp    Target WordPress version.
+ * @param bool   $formula_safe Prefix cells that look like formulas with an
+ *                             apostrophe. Needed for CSV (Excel) and Google
+ *                             Sheets; skip it for XLSX, whose inline strings are
+ *                             never evaluated.
  * @return array[] Ordered rows; the caller writes them verbatim.
  */
-function mi_build_report_rows( string $target_php, string $target_wp ): array {
+function mi_build_report_rows( string $target_php, string $target_wp, bool $formula_safe = true ): array {
     $data  = get_plugin_insight_data();
     $theme = $data['site_info']['active_theme'];
     $rows  = array();
 
+    $safe = $formula_safe
+        ? __NAMESPACE__ . '\mi_cell_safe'
+        : 'strval';
+
     $rows[] = array( 'Modules Insight report', current_time( 'mysql' ), home_url() );
     $rows[] = array( 'WordPress version', $data['site_info']['wp_version'] );
-    $rows[] = array_map( __NAMESPACE__ . '\mi_cell_safe', array( 'Active theme', $theme['name'], $theme['version'], $theme['author'], $theme['theme_uri'] ) );
+    $rows[] = array_map( $safe, array( 'Active theme', $theme['name'], $theme['version'], $theme['author'], $theme['theme_uri'] ) );
     $rows[] = array( 'Target PHP', $target_php, 'Target WP', $target_wp );
     $rows[] = array( '' ); // Spacer. Not array() — Apps Script's appendRow() rejects an empty array.
 
@@ -60,7 +68,7 @@ function mi_build_report_rows( string $target_php, string $target_wp ): array {
     foreach ( array( 'active' => 'Active', 'inactive' => 'Inactive' ) as $bucket => $status_label ) {
         foreach ( $data[ $bucket ] as $plugin ) {
             $compat = get_compat_export_data( explode( '/', $plugin['path'] )[0], $target_php, $target_wp );
-            $rows[] = array_map( __NAMESPACE__ . '\mi_cell_safe', array(
+            $rows[] = array_map( $safe, array(
                 $status_label,
                 $plugin['name'],
                 $plugin['version'],

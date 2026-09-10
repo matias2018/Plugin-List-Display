@@ -4,11 +4,11 @@ Tags: plugin management, plugin report, admin tools, plugin status, developer to
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 4.0.2
+Stable tag: 4.0.4
 License: GPL-2.0-or-later
 License URI: http://www.gnu.org/licenses/gpl-2.0.txt
 
-Audit plugins, rate PHP and WordPress upgrade risk from the WordPress.org API, and export to JSON, CSV, or a Google Sheet.
+Audit plugins, rate PHP and WordPress upgrade risk from the WordPress.org API, and export to JSON, CSV, Excel, or a Google Sheet.
 
 == Description ==
 
@@ -45,7 +45,7 @@ Results from the WordPress.org API are cached per plugin for 24 hours to avoid u
 
 MI lists all installed plugins (active, inactive, and network-active on multisite) with version numbers, author details, and descriptions. It also reports the active WordPress version and active theme.
 
-Reports can be exported as `.json`, `.csv`, or sent to a Google Sheet. All include the PHP and WordPress compatibility data if a check has been run prior to export.
+Reports can be exported as `.json`, `.csv`, `.xlsx` (best for Excel Online / SharePoint), or sent to a Google Sheet. All include the PHP and WordPress compatibility data if a check has been run prior to export.
 
 Tested and fully compatible with **WordPress 7.1**.
 
@@ -60,7 +60,7 @@ The same check now rates each plugin against a target **WordPress** version too 
 * Selectable targets: PHP 8.0–8.5, WordPress 6.7–7.1
 * Lists all installed plugins with status, version, author, and URIs
 * Reports WordPress version and active theme
-* Export as JSON, CSV, or straight to a Google Sheet (includes compat data when available)
+* Export as JSON, CSV, Excel (.xlsx), or straight to a Google Sheet (includes compat data when available)
 * Ask AI about a specific plugin using the WordPress core AI Client (WordPress 7.0+, optional)
 * Dashboard widget and `[plugin_list]` shortcode
 * Scan-on-demand — nothing runs automatically on page load
@@ -88,7 +88,7 @@ Modules Insight makes outbound requests only when an administrator asks it to:
 3. Check your **Dashboard** for the "Modules Insight - Plugin List" widget, or use the shortcode `[plugin_list]` on any page or post.
 4. Press **Scan Plugins** to load the plugin list.
 5. Pick your **Target PHP** and **Target WP** versions, then press **Check Upgrade Compatibility** to run the risk evaluation against the WordPress.org API.
-6. Once the scan is complete, press **Download List as JSON**, **Download List as CSV**, or **Send report to Google Sheet** to export the full report, including the compatibility data.
+6. Once the scan is complete, press **Download List as JSON**, **Download List as CSV**, **Download List as Excel**, or **Send report to Google Sheet** to export the full report, including the compatibility data.
 7. Optionally, set up the Google Sheets export and (on WordPress 7.0+) the AI Q&A under **Settings → Modules Insight**.
 
 == Frequently Asked Questions ==
@@ -139,7 +139,7 @@ Only users with the `activate_plugins` capability (typically Administrators). Th
 
 = What formats can I export? =
 
-JSON, CSV, or a Google Sheet. All include the PHP and WordPress compatibility data (last updated, "tested up to", minimum PHP, both risk levels) for any plugin that has been checked. Plugins not yet checked show `not_checked` in those fields.
+JSON, CSV, Excel, or a Google Sheet. All include the PHP and WordPress compatibility data (last updated, "tested up to", minimum PHP, both risk levels) for any plugin that has been checked. Plugins not yet checked show `not_checked` in those fields.
 
 = Can I use this on a live/production site? =
 
@@ -153,6 +153,10 @@ Yes. MI loads no assets unless an admin explicitly presses Scan, and makes no ou
 4. Example of "print" page using shortcode and automatic expanded description view using `<details>`.
 
 == Changelog ==
+
+= 4.0.4 =
+* Feature: "Download List as Excel (for SharePoint)" — a native `.xlsx` export. It opens with real columns and correct UTF-8 text in Excel, Excel Online and SharePoint, where CSV delimiter and encoding detection is unreliable. Written in-plugin; no library or PHP zip extension required.
+* Fix: The CSV export now begins with a UTF-8 BOM, so Excel stops mangling accented author names after the download loses its charset header.
 
 = 4.0.2 =
 * Fix: "Send report to Google Sheet" failed with "The Google Sheet rejected the request: HTTP 200". The Apps Script Web App replies with a 302 to script.googleusercontent.com, an endpoint that only accepts GET; WordPress re-issued the redirect as POST and never received the JSON reply. The plugin now follows the redirect with a GET.
@@ -304,6 +308,9 @@ Yes. MI loads no assets unless an admin explicitly presses Scan, and makes no ou
 * (Internal/Previous Version) Initial concept release.
 
 == Upgrade Notice ==
+
+= 4.0.4 =
+Adds a native Excel (.xlsx) export for Excel Online / SharePoint and fixes accented names in the CSV export.
 
 = 4.0.2 =
 Fixes "Send report to Google Sheet" failing with "HTTP 200" — the plugin now follows the Apps Script redirect correctly. No reconfiguration needed.
